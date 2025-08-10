@@ -17,6 +17,14 @@ _This document demonstrates a unified approach to documentation that serves both
   - [Testing Patterns](#testing-patterns)
   - [Debugging Streams](#debugging-streams)
 - [Migration Guide: Web Streams](#migration-guide-web-streams)
+- [Architectural Evolution: Runtime-Agnostic Design](#architectural-evolution-runtime-agnostic-design)
+  - [Historical Architecture](#historical-architecture)
+  - [Modern Architecture: Engine vs. Integration](#modern-architecture-engine-vs-integration)
+  - [Build vs. Publish: Selective Pipeline Execution](#build-vs-publish-selective-pipeline-execution)
+    - [Building (Full Pipeline)](#building-full-pipeline)
+    - [Publishing (Content-Only Pipeline)](#publishing-content-only-pipeline)
+    - [Design Rationale](#design-rationale)
+- [Core Architecture](#core-architecture-1)
 
 ## About
 
@@ -251,6 +259,142 @@ describe("Pipeline", () => {
 > - Maintain backward compatibility during transition
 
 **Target Deployment**: Cloudflare Workers triggered by CMS webhooks for real-time publishing.
+
+## Architectural Evolution: Runtime-Agnostic Design
+
+**Human Context**: Gilbert has evolved from a local filesystem-bound tool to a runtime-agnostic engine designed for modern deployment environments.
+
+### Historical Architecture
+
+Earlier versions of Gilbert were tightly coupled to the local Node.js environment:
+
+- **Input Dependencies**: Used `vinyl-fs` to read templates and static files from local filesystem
+- **Output Coupling**: Generated files directly to filesystem via `vinyl-fs` destinations
+- **Deployment Constraint**: Required Node.js runtime with filesystem access
+- **S3 Interlude**: Brief period streaming outputs directly to AWS S3
+
+### Modern Architecture: Engine vs. Integration
+
+**The new Gilbert engine distinguishes between core processing and environment integration:**
+
+> **AI Note**: Gilbert engine is being migrated to be **purely Web API streams-based**:
+>
+> - **Inputs**: Accepts Web API ReadableStreams (data, templates, static files)
+> - **Outputs**: Produces Web API ReadableStreams of processed files
+> - **Runtime Agnostic**: Works in Cloudflare Workers, Bun, Deno, Node.js
+> - **No Filesystem Dependencies**: Engine has no direct filesystem coupling
+
+**Integration Layer Responsibility**: Developers implement environment-specific adapters:
+
+```javascript
+// Example: Local development adapter pattern
+const localDevAdapter = {
+  // Convert filesystem reads to Web Streams for Gilbert
+  input: {
+    templates: nodeFsStreamToWebStream(vfs.src("templates/**/*.hbs")),
+    data: nodeFsStreamToWebStream(vfs.src("data/**/*.json")),
+    static: nodeFsStreamToWebStream(vfs.src("static/**/*")),
+  },
+
+  // Convert Gilbert Web Stream output to filesystem writes
+  output: webStreamToNodeFsStream(gilbert.outputStream).pipe(vfs.dest("./dist")),
+};
+
+// Example: Cloudflare Workers integration
+const cloudflareAdapter = {
+  // Fetch templates/data from GitHub via Web Streams
+  input: {
+    templates: githubBranchAsStream.templatesStream,
+    data: githubBranchAsStream.dataStream,
+    static: githubBranchAsStream.staticStream,
+  },
+
+  // Stream output directly to Cloudflare static assets API
+  output: gilbert.outputStream.pipeTo(cloudflareAssetsUploadStream),
+};
+```
+
+**Benefits of This Separation**:
+
+- **Engine Portability**: Same Gilbert core runs everywhere
+- **Integration Flexibility**: Adapt inputs/outputs to any environment
+- **Testing Simplicity**: Mock Web Streams for isolated engine testing
+- **Future-Proof**: New deployment targets require only new adapters
+
+> **AI Note**: When working with Gilbert:
+>
+> - **Engine Code**: Use only Web API streams (`ReadableStream`, `TransformStream`, `WritableStream`)
+> - **Integration Code**: Handle environment-specific conversions in adapter layers
+> - **Testing**: Create mock Web Streams, avoid filesystem dependencies in engine tests
+> - **Examples**: Provide adapter patterns for common environments (Node.js, Cloudflare Workers)
+
+### Build vs. Publish: Selective Pipeline Execution
+
+**Human Context**: Gilbert distinguishes between full builds (during development) and fast publishing (content-only updates) to optimize performance for different deployment scenarios.
+
+#### Building (Full Pipeline)
+
+**When**: Development, asset changes, or CI/CD with rich filesystem environment
+**Where**: Local filesystem or VMs with complete development environment
+**Pipelines Used**: ALL Gilbert pipelines
+
+- **`TemplatePipeline`**: Data + templates → HTML
+- **`ScriptsPipeline`**: esbuild bundling, tree-shaking, minification
+- **`StylesheetsPipeline`**: esbuild for CSS, PostCSS, autoprefixing
+- **`StaticFilesPipeline`**: Manifest, robots.txt, images, etc.
+
+**Requirements**: Full filesystem access for esbuild to read source + node_modules
+**Output**: Complete optimized static site
+
+#### Publishing (Content-Only Pipeline)
+
+**When**: Content changes, CMS updates, data-driven page updates
+**Where**: Serverless environments (Cloudflare Workers, edge functions)
+**Pipelines Used**: SUBSET of Gilbert pipelines
+
+- **`TemplatePipeline`**: Data + templates → HTML _(primary use case)_
+- **`StaticFilesPipeline`**: Content-dependent assets only
+- **NO** `ScriptsPipeline` or `StylesheetsPipeline` _(assets pre-built)_
+
+**Requirements**: Web API streams only, no filesystem dependencies
+**Output**: Updated HTML and content-related assets
+
+#### Design Rationale
+
+**Minimal JS/CSS Philosophy**: Sites use minimal client-side code, making asset rebuilds unnecessary for content changes.
+
+**esbuild Constraint**: Requires filesystem access to source and node_modules, incompatible with serverless streams-only environments.
+
+**Performance Optimization**: Skip expensive bundling operations when only content changes, enabling real-time publishing workflows.
+
+> **AI Note**: Gilbert engine supports selective pipeline execution:
+>
+> - **Pipeline Selection**: Engine accepts configuration specifying which pipelines to execute
+> - **Build Scenario**: All pipelines enabled for complete asset generation
+> - **Publish Scenario**: Only content pipelines (`TemplatePipeline`, selective `StaticFilesPipeline`)
+> - **Implementation**: Check for presence of pipeline configuration in main engine (`compile()` method)
+> - **Example Usage**:
+>
+> ```javascript
+> // Full build (local development)
+> await gilbert.compile({
+>   uris: { data: dataStream, theme: templateStream },
+>   scripts: { entryPoints: ["./src/main.js"] },
+>   stylesheets: { entryPoints: ["./src/main.css"] },
+>   files: { stream: staticFilesStream },
+> });
+>
+> // Publishing (serverless/edge)
+> await gilbert.compile({
+>   uris: { data: dataStream, theme: templateStream },
+>   files: { stream: contentAssetsStream },
+>   // No scripts or stylesheets
+> });
+> ```
+
+**Deployment Strategy**: Heavy builds on rich environments, fast content publishing on edge infrastructure.
+
+## Core Architecture
 
 ---
 

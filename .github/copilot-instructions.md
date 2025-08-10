@@ -3,9 +3,32 @@
 ## Project Overview
 Gilbert is a **streams-based, data-driven static site generator** that processes content through pipeline architectures. Unlike traditional file-based generators, Gilbert transforms data streams through specialized pipelines to generate HTML, CSS, and JavaScript with exceptional performance.
 
-While Gilbert's primary use case is static website and web app generation it can also be thought of as a textfile compiler. Given the correctly formatted template Gilbert can generate almost any non-binary text based file including XML, PostScript, SVG, and many more.
+**CRITICAL CONTEXT**: Gilbert has evolved from a filesystem-bound tool to a **runtime-agnostic engine** designed for modern deployment environments including Cloudflare Workers. The engine distinguishes between **building** (full pipeline with filesystem) and **publishing** (content-only with Web Streams).
 
-**Core Philosophy**: Gilbert is designed as a high-speed, low-memory aggregator that combines multiple input streams into a single output stream. It assumes upstream applications have already transformed data into the required format, allowing Gilbert to focus purely on fast file generation (200+ pages/second on typical hardware).
+### Real-World Use Case: Stop The Party (STP)
+Gilbert's architecture is being driven by StopTheParty.ca, which uses:
+- **Pages CMS (pagescms.org)** - GitHub-based CMS for content management  
+- **GitHubBranchAsStream** - Custom Web Streams implementation for fetching content from GitHub
+- **Cloudflare Workers** - Edge publishing environment for real-time content updates
+- **Build vs. Publish distinction** - Heavy builds locally, fast content publishing on edge
+
+### Build vs. Publish Architecture
+
+**Building (Full Pipeline)**:
+- **When**: Development, asset changes, CI/CD
+- **Where**: Local filesystem or VMs with complete development environment  
+- **Pipelines**: ALL Gilbert pipelines (Templates, Scripts, Stylesheets, Static)
+- **Requirements**: Full filesystem access for esbuild to read source + node_modules
+- **Output**: Complete optimized static site
+
+**Publishing (Content-Only Pipeline)**:
+- **When**: Content changes, CMS updates, data-driven page updates
+- **Where**: Serverless environments (Cloudflare Workers, edge functions)
+- **Pipelines**: SUBSET - TemplatePipeline + selective StaticFilesPipeline only
+- **Requirements**: Web API streams only, no filesystem dependencies  
+- **Output**: Updated HTML and content-related assets
+
+**Design Rationale**: Sites use minimal client-side code, making asset rebuilds unnecessary for content changes. esbuild requires filesystem access, incompatible with serverless streams-only environments.
 
 ## Core Architecture
 
@@ -15,11 +38,32 @@ While Gilbert's primary use case is static website and web app generation it can
 - **`services/gilbert-cli`**: Command-line interface using Commander.js. The CLI project is currently parked and not actively maintained.
 
 ### Key Design Principles
-1. **Streams-first**: All processing uses Node.js streams for memory efficiency. **Migrating to Web Streams** for WinterCG compatibility and runtime portability (Cloudflare Workers, Bun, Deno, etc.)
-2. **Pipeline-based**: Separate pipelines for templates, scripts, stylesheets, and static files
-3. **Virtual files**: Uses GilbertFile objects (custom Vinyl implementation) instead of filesystem
-4. **Data-driven**: Templates merge with pre-transformed JSON data (no data transformation within Gilbert)
-5. **Performance-first**: Designed for 200+ pages/second generation with minimal memory footprint
+1. **Runtime-Agnostic Engine**: Core engine uses only Web API streams (ReadableStream, TransformStream, WritableStream)
+2. **Integration Layer Separation**: Environment-specific adapters handle filesystem or network I/O
+3. **Selective Pipeline Execution**: Engine supports build vs. publish modes via pipeline configuration
+4. **Streams-first**: **Migrating from Node.js streams to Web Streams** for WinterCG compatibility and runtime portability (Cloudflare Workers, Bun, Deno, etc.)
+5. **Pipeline-based**: Separate pipelines for templates, scripts, stylesheets, and static files
+6. **Virtual files**: Uses GilbertFile objects (custom Vinyl implementation) - already runtime-agnostic
+7. **Data-driven**: Templates merge with pre-transformed JSON data (no data transformation within Gilbert)
+8. **Performance-first**: Designed for 200+ pages/second generation with minimal memory footprint
+
+### Architecture Evolution
+**Historical**: Tightly coupled to local Node.js environment via vinyl-fs for inputs/outputs
+**Current Migration**: Converting from Node.js streams to Web API streams throughout engine
+**Target**: Pure Web Streams engine with environment-specific integration adapters
+
+**Integration Pattern**:
+```javascript
+// Engine: Pure Web Streams (target architecture)
+gilbert.compile({
+  uris: { data: webDataStream, theme: webTemplateStream },
+  files: { stream: webStaticStream }
+});
+
+// Integration: Environment adapters
+const localAdapter = nodeStreamsToWebStreams(vfs.src(...));
+const cloudflareAdapter = githubBranchAsStream.dataStream;
+```
 
 ### Critical Components
 
@@ -107,9 +151,31 @@ const file = vinyl({ path: "/index.html", contents: Buffer.from(html) });
 - **Virtual filesystem**: Keep `options.cwd` as "/" for consistent path resolution
 
 ### Web Streams Migration (WinterCG Compatibility)
-- **Target runtimes**: Cloudflare Workers, Bun, Deno, Node.js
-- **Migration strategy**: Replace Node.js streams with Web Streams API
-- **Use case**: Enable webhook-triggered CMS publishing in edge environments
+**URGENT PRIORITY**: Converting Gilbert engine from Node.js streams to Web API streams
+
+**Target runtimes**: Cloudflare Workers, Bun, Deno, Node.js
+**Migration strategy**: 
+- Phase 1: Create Web API stream utilities and coordination helpers
+- Phase 2: Convert TemplatePipeline (most critical for STP publishing)
+- Phase 3: Convert remaining pipelines and main engine
+- Phase 4: Remove Node.js stream dependencies
+
+**Current Status**: Active migration in progress on `web-api-streams` branch
+
+**Use case**: Enable webhook-triggered CMS publishing in Cloudflare Workers for StopTheParty.ca
+**Real-world constraint**: Must integrate with existing GitHubBranchAsStream (already Web API streams)
+
+**Development Approach**: Mock test harness + incremental pipeline migration
+- Create mock STP publishing scenario for testing
+- Convert pipelines one at a time starting with TemplatePipeline
+- Test each converted pipeline against mock before proceeding
+
+**Key Files for Migration**:
+- `services/gilbert/lib/index.js` - Main engine merge stream logic
+- `services/gilbert/lib/TemplatePipeline.js` - Template processing (highest priority)
+- `services/gilbert/lib/StaticFilesPipeline.js` - Static file processing  
+- `services/gilbert/lib/Utils.js` - Stream coordination utilities
+- `services/gilbert/lib/StreamUtils.js` - Stream utilities (may be deprecated)
 
 ### Adding New Pipeline
 1. Extend base pipeline pattern in `services/gilbert/lib/`
