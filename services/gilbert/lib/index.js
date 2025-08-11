@@ -1,17 +1,15 @@
-// System dependencies
-import { Transform } from "stream";
-
 // Third party dependencies
 import mime from "mime";
 
 // Project dependencies
-import StaticFilesPipeline from "./StaticFilesPipeline.js";
-import ScriptsPipeline from "./ScriptsPipeline.js";
-import StylesheetsPipeline from "./StylesheetsPipeline.js";
 import TemplatePipeline from "./TemplatePipeline.js";
+import StaticFilesPipeline from "./StaticFilesPipeline.js";
+// import ScriptsPipeline from "./ScriptsPipeline.js"; // TODO: Re-enable after Web API streams conversion
+// import StylesheetsPipeline from "./StylesheetsPipeline.js"; // TODO: Re-enable after Web API streams conversion
 
 // Crude global exception handler
 process.on("uncaughtException", (err) => {
+  // eslint-disable-next-line no-console
   console.error("Uncaught Exception", err);
 });
 
@@ -22,7 +20,8 @@ process.on("uncaughtException", (err) => {
 class Gilbert {
   // Private properties
   #options;
-  #pipeCounter;
+  #mergeController;
+  #activePipelines;
 
   /**
    * Creates an instance of Gilbert.
@@ -35,57 +34,151 @@ class Gilbert {
     this.produce = this.compile;
 
     // Initialise private properties
-    this.#pipeCounter = 0;
     this.#options = options;
 
     // Public properties exposed to the calling application
     this.resources = 0;
     this.size = 0;
 
-    // Initialise public mergeStream which will aggregate all resources and return to the calling application
-    this.mergeStream = new Transform({
-      objectMode: true,
-      transform: (file, _, done) => {
-        done(null, file);
+    // Initialize Web API streams coordinator
+    this.#initializeMergeStream();
+  }
+
+  /**
+   * Initialize the Web API streams merge coordinator
+   */
+  #initializeMergeStream() {
+    const self = this;
+
+    // Track active pipelines
+    this.#activePipelines = new Set();
+
+    this.stream = new ReadableStream({
+      start(controller) {
+        self.#mergeController = controller;
+      },
+
+      cancel() {
+        if (self.#options.debug) {
+          // eslint-disable-next-line no-console
+          console.log("MergeStream cancelled");
+        }
       },
     });
+  }
 
-    // Housekeeping: Count resources, accumulate the file size and set missing content types.
-    this.mergeStream.on("data", (file) => {
-      // Check for contents before incrementing the size; the stream can emit empty files in the case of directories.
-      if (file.contents) {
-        // Increment the accumulated file size every time we add a new file to the stream
-        this.size += file.contents.length;
-        // Increment the resource counter every time we add a new file to the stream
-        this.resources++;
+  /**
+   * Add a ReadableStream to be merged into the output
+   */
+  addStream(readableStream) {
+    const streamId = Symbol("stream");
+    this.#activePipelines.add(streamId);
 
-        // If the file doesn't have a content type (preset only in TemplatePipeline), set it to the default
-        // TODO: Refactor so this is entirely handled in gilbert-file
-        if (!file.contentType) {
-          file.contentType = mime.getType(file.path);
+    // Start reading from this stream
+    this.#processStream(readableStream, streamId);
+  }
+
+  /**
+   * Process a single stream and pipe its data to the merge output
+   */
+  async #processStream(readableStream, streamId) {
+    try {
+      const reader = readableStream.getReader();
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        // Process the file through our enqueue method
+        this.#enqueueFile(value);
+      }
+
+      reader.releaseLock();
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(`Stream ${streamId.toString()} processing failed:`, error);
+    } finally {
+      // Remove this pipeline from active set
+      this.#activePipelines.delete(streamId);
+
+      // If no more active pipelines, close the merge stream
+      if (this.#activePipelines.size === 0) {
+        if (this.#mergeController) {
+          this.#mergeController.close();
+
+          if (this.#options.debug) {
+            // eslint-disable-next-line no-console
+            console.log(`MergeStream ended: ${this.resources} resources, ${this.size} bytes`);
+          }
         }
       }
-    });
+    }
+  }
 
-    // Useful for debugging
-    this.mergeStream.on("end", () => {
-      // if (this.#options.debug) {
-      console.log(`MergeStream ended: ${this.resources} resources, ${this.size} bytes`);
-      // }
-    });
+  /**
+   * Add a file to the merge stream and update statistics
+   */
+  #enqueueFile(file) {
+    // Check for contents before incrementing the size
+    if (file.contents) {
+      this.size += file.contents.length;
+      this.resources++;
 
-    // Decrement the count of pipes as each stream is unpiped, eventually ending the mergeStream itself
-    this.mergeStream.on("unpipe", (src) => {
+      // Set content type if missing
+      if (!file.contentType) {
+        file.contentType = mime.getType(file.path);
+      }
+    }
+
+    // Add to output stream
+    if (this.#mergeController) {
+      this.#mergeController.enqueue(file);
+    }
+  }
+
+  /**
+   * Register a pipeline and handle its completion
+   */
+  async #processPipeline(pipelineStream, pipelineName) {
+    const pipelineId = Symbol(pipelineName);
+    this.#activePipelines.add(pipelineId);
+
+    try {
+      const reader = pipelineStream.getReader();
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) break;
+
+        this.#enqueueFile(value);
+      }
+
       if (this.#options.debug) {
-        console.log("Unpiping:", src);
+        // eslint-disable-next-line no-console
+        console.log(`${pipelineName} completed`);
       }
-      this.#pipeCounter--;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(`Pipeline ${pipelineName} failed:`, error);
+      throw error;
+    } finally {
+      this.#activePipelines.delete(pipelineId);
 
-      // If we have no more pipes, end the mergeStream
-      if (this.#pipeCounter === 0) {
-        this.mergeStream.end();
+      // If this was the last pipeline, close the merge stream
+      if (this.#activePipelines.size === 0) {
+        if (this.#mergeController) {
+          this.#mergeController.close();
+          if (this.#options.debug) {
+            // eslint-disable-next-line no-console
+            console.log(`MergeStream ended: ${this.resources} resources, ${this.size} bytes`);
+          }
+        }
       }
-    });
+    }
   }
 
   /**
@@ -94,60 +187,88 @@ class Gilbert {
    * @memberof Gilbert
    */
   async compile(params) {
+    const pipelinePromises = [];
+
     // For compiling data and templates, both streams must be present. Graceful degredation means static files can still be parsed.
     if (params?.uris?.data?.stream && params?.uris?.theme?.stream) {
-      // Increment the pipe counter
-      this.#pipeCounter++;
-
       // Create a new instance of the TemplatePipeline
       const templatePipeline = new TemplatePipeline(this.#options, params.uris.data.stream, params.uris.theme.stream);
+
       // Prep fetches the data and templates and we need both to be ready before we can build
       await templatePipeline.prep();
-
-      // Open the stream
-      templatePipeline.stream.pipe(this.mergeStream, { end: false });
 
       // Start building files into the stream
       templatePipeline.build();
 
+      // Process the template pipeline stream
+      pipelinePromises.push(this.#processPipeline(templatePipeline.stream, "Templates"));
+
       if (this.#options.debug) {
-        console.log("Templates parsed");
+        // eslint-disable-next-line no-console
+        console.log("Templates pipeline started");
       }
     }
 
-    // Static files processing. These just pass through unadulterated.
+    // Static files processing
     if (params?.files?.stream) {
-      this.#pipeCounter++;
-      params.files.stream.pipe(new StaticFilesPipeline(this.#options)).pipe(this.mergeStream, { end: false });
+      const staticFilesPipeline = new StaticFilesPipeline(this.#options);
 
-      if (this.#options.debug) {
-        console.log("Files parsed");
-      }
+      // Connect static files stream through the pipeline to our merge coordinator
+      const staticReader = params.files.stream.pipeThrough(staticFilesPipeline.transformStream);
+      this.addStream(staticReader);
     }
 
-    // Scripts processing. Scripts are bundled and minified before being added to the mergeStream.
+    // Scripts processing - temporarily disabled during Web API streams conversion
+    /*
     if (params?.scripts?.entryPoints) {
-      this.#pipeCounter++;
       const scriptsPipeline = new ScriptsPipeline(this.#options, params.scripts.entryPoints);
-      // Building is asynchronous because esbuild has to read from the filesystem :(
+      
+      // Building is asynchronous because esbuild has to read from the filesystem
       const results = await scriptsPipeline.build();
-      scriptsPipeline.stream.pipe(this.mergeStream, { end: false });
+      
+      // TODO: Convert ScriptsPipeline to Web API streams
+      // For now, assume it will return a Web API ReadableStream
+      pipelinePromises.push(this.#processPipeline(scriptsPipeline.stream, "Scripts"));
 
       if (this.#options.debug) {
-        console.log("Scripts parsed", results);
+        // eslint-disable-next-line no-console
+        console.log("Scripts pipeline started", results);
       }
     }
+    */
 
-    // Stylesheets processing. Stylesheets are bundled and minified before being added to the mergeStream.
+    // Stylesheets processing - temporarily disabled during Web API streams conversion
+    /*
     if (params?.stylesheets?.entryPoints) {
-      this.#pipeCounter++;
       const stylesheetsPipeline = new StylesheetsPipeline(this.#options, params.stylesheets.entryPoints);
-      // Building is asynchronous because esbuild has to read from the filesystem :(
+
+      // Building is asynchronous because esbuild has to read from the filesystem
       const results = await stylesheetsPipeline.build();
-      stylesheetsPipeline.stream.pipe(this.mergeStream, { end: false });
+
+      // TODO: Convert StylesheetsPipeline to Web API streams
+      // For now, assume it will return a Web API ReadableStream
+      pipelinePromises.push(this.#processPipeline(stylesheetsPipeline.stream, "Stylesheets"));
 
       if (this.#options.debug) {
-        console.log("Stylesheets parsed", results);
+        // eslint-disable-next-line no-console
+        console.log("Stylesheets pipeline started", results);
+      }
+    }
+    */
+
+    // Start processing all pipelines concurrently
+    // The individual pipelines will close the merge stream when they're all done
+    if (pipelinePromises.length > 0) {
+      // Don't await here - let pipelines run concurrently
+      // The merge stream will close automatically when all pipelines complete
+      Promise.all(pipelinePromises).catch((error) => {
+        // eslint-disable-next-line no-console
+        console.error("Pipeline processing failed:", error);
+      });
+    } else {
+      // No pipelines to process, close immediately
+      if (this.#mergeController) {
+        this.#mergeController.close();
       }
     }
   }

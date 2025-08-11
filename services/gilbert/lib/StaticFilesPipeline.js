@@ -1,6 +1,3 @@
-// System dependencies
-import { Transform } from "stream";
-
 // Project dependencies
 import { vinyl } from "./Utils.js";
 
@@ -20,22 +17,20 @@ class StaticFilesPipeline {
   constructor(options) {
     this.#options = options;
 
-    // Create a new Transform stream as pipable output
-    this.transformStream = new Transform({
-      objectMode: true,
-
-      // Just change the absolute project source path to the preferred virtual output path
-      transform: (file, _, done) => {
+    // Create a Web API TransformStream for file processing
+    this.transformStream = new TransformStream({
+      transform: (file, controller) => {
+        // Just change the absolute project source path to the preferred virtual output path
         const v = vinyl({
           path: `${file.path.replace(this.#options.relativeRoot, "")}`,
           contents: file.contents,
         });
 
-        done(null, v);
+        controller.enqueue(v);
       },
     });
 
-    return this.transformStream;
+    // Don't return the stream - keep it as a property
   }
 }
 
