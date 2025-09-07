@@ -1,17 +1,8 @@
 {
+  "extends": "../../jsconfig.json",
   "compilerOptions": {
-    "target": "ES2022",
     "module": "ES2022",
-    "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "allowJs": true,
-    "checkJs": true,
-    "noImplicitAny": false,
-    "strictNullChecks": false,
-    "strictFunctionTypes": false,
-    "noImplicitReturns": false,
-    "noFallthroughCasesInSwitch": false
+    "moduleResolution": "node"
   },
   "include": ["lib/**/*.js"],
   "exclude": ["tests", "tests/**", "**/*.test.js", "node_modules"]

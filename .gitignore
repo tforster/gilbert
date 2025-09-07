@@ -5,6 +5,12 @@ dist
 stack
 test
 
+# Generated documentation
+docs/api/
+**/docs/
+API.md
+**/API.md
+
 ### Misc. Tooling ###
 
 .gulp
@@ -329,6 +335,11 @@ paket-files/
 # JetBrains Rider
 .idea/
 *.sln.iml
+
+# VSCode specific files
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
 
 # CodeRush
 .cr/

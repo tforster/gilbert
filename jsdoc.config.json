@@ -1,0 +1,30 @@
+{
+  "source": {
+    "include": [
+      "./services/gilbert/lib/",
+      "./services/gilbert-file/lib/",
+      "./services/gilbert-github/lib/",
+      "./services/gilbert-fs/lib/"
+    ],
+    "includePattern": "\\.(js|mjs)$",
+    "exclude": ["node_modules/", "**/tests/", "**/test/", "**/*.test.js", "**/node_modules/**"]
+  },
+  "opts": {
+    "destination": "./docs/api/",
+    "recurse": true,
+    "readme": "./README.md",
+    "pedantic": false
+  },
+  "plugins": ["plugins/markdown"],
+  "templates": {
+    "cleverLinks": false,
+    "monospaceLinks": false
+  },
+  "tags": {
+    "allowUnknownTags": true,
+    "dictionaries": ["jsdoc", "closure"]
+  },
+  "metadata": {
+    "title": "Gilbert Mono Repo API Documentation"
+  }
+}

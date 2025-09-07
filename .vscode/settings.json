@@ -14,5 +14,10 @@
     "sash.hoverBorder": "#01a753",
     "commandCenter.border": "#e7e7e799"
   },
-  "cSpell.words": ["Promisifies", "vars"]
+  "cSpell.words": ["Promisifies", "vars"],
+  "typescript.validate.enable": true,
+  "javascript.validate.enable": true,
+  "files.associations": {
+    "*.test.js": "javascript"
+  }
 }
