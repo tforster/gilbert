@@ -1,5 +1,23 @@
 {
+  "author": "Troy Forster <troy.forster@gmail.com> (http://www.tforster.com/)",
+  "dependencies": {},
+  "description": "Filesystem adapter for Gilbert using Web API streams",
+  "exports": {
+    ".": "./lib/index.js"
+  },
+  "files": [
+    "lib/"
+  ],
+  "license": "MIT",
+  "main": "lib/index.js",
+  "name": "@tforster/gilbert-fs",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/tforster/webproducer.git"
+  },
+  "scripts": {
+    "test": "node --test tests/**/*.test.js"
+  },
   "type": "module",
-  "name": "",
-  "version": ""
+  "version": "0.1.0"
 }

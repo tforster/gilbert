@@ -43,6 +43,7 @@ Gilbert's architecture is being driven by StopTheParty.ca, which uses:
 - **`services/gilbert-file`**: Custom Vinyl-compatible file object (replaces vinyl dependency)
 - **`services/gilbert-cli`**: Command-line interface using Commander.js. The CLI project is currently parked and not actively maintained.
 - **`services/gilbert-github`**: GitHubBranchAsStream - Web Streams adapter for GitHub content
+- **`services/gilbert-fs`**: Web API streams filesystem adapter using gilbert-file (for local builds). Similar to VinylFS but Web Streams-based. Supports both src and dest.
 
 ### Key Design Principles
 

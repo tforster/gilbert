@@ -4,6 +4,7 @@ dist
 .env
 stack
 test
+test-output
 
 # Generated documentation
 docs/api/
