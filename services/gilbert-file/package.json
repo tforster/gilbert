@@ -19,8 +19,15 @@
   },
   "scripts": {
     "test": "node --test tests/**/*.test.js",
-    "test:watch": "node --test --watch tests/**/*.test.js"
+    "test:watch": "node --test --watch tests/**/*.test.js",
+    "docs": "jsdoc2md lib/**/*.js > API.md",
+    "docs:advanced": "node scripts/generate-docs.js",
+    "docs:watch": "nodemon --watch lib --ext js --exec \"npm run docs\""
   },
   "type": "module",
-  "version": "0.1.0"
+  "version": "0.1.0",
+  "devDependencies": {
+    "jsdoc": "^4.0.4",
+    "jsdoc-to-markdown": "^9.1.2"
+  }
 }

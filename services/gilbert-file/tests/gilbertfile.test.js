@@ -1,15 +1,405 @@
-import { test, describe, it, beforeEach, afterEach, mock } from "node:test";
-import assert from "node:assert/strict";
+import { describe, it, beforeEach } from "node:test";
+import assert from "node:assert";
 import path from "node:path";
-import { Buffer } from "node:buffer";
-import { Readable } from "node:stream";
-import fs from "node:fs"; // For fs.Stats
 
-import GilbertFile from "../index.js";
+import GilbertFile from "../lib/index.js";
 
-// Constants for modes (align with GilbertFile if they are defined there, otherwise define here)
-const DEFAULT_FILE_MODE = 0o100644; // Example, adjust if GilbertFile uses different defaults
-const DEFAULT_DIR_MODE = 0o040755; // Example, adjust if GilbertFile uses different defaults
+describe("GilbertFile", () => {
+  describe("Constructor", () => {
+    it("should create a file with minimal options", () => {
+      const file = new GilbertFile();
+      assert.ok(file instanceof GilbertFile);
+      assert.strictEqual(file.contents, null);
+      assert.strictEqual(file.path, null);
+      assert.strictEqual(typeof file.cwd, "string");
+      assert.strictEqual(file.size, 0); // null contents = size 0
+    });
+
+    it("should create a file with path", () => {
+      const file = new GilbertFile({ path: "/test.txt" });
+      assert.strictEqual(file.path, "/test.txt");
+      assert.strictEqual(file.extname, ".txt");
+      assert.strictEqual(file.basename, "test.txt");
+      assert.strictEqual(file.stem, "test");
+      assert.strictEqual(file.dirname, "/");
+    });
+
+    it("should create a file with Uint8Array contents", () => {
+      const contents = new Uint8Array([72, 101, 108, 108, 111]); // "Hello"
+      const file = new GilbertFile({ contents });
+      assert.strictEqual(file.contents, contents);
+      assert.strictEqual(file.size, 5);
+      assert.strictEqual(file.isBuffer(), true);
+      assert.strictEqual(file.isStream(), false);
+      assert.strictEqual(file.isNull(), false);
+    });
+
+    it("should create a file with Web API ReadableStream", () => {
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new Uint8Array([1, 2, 3]));
+          controller.close();
+        },
+      });
+      const file = new GilbertFile({ contents: stream });
+      assert.strictEqual(file.contents, stream);
+      assert.strictEqual(file.size, null); // streams have no predetermined size
+      assert.strictEqual(file.isStream(), true);
+      assert.strictEqual(file.isBuffer(), false);
+      assert.strictEqual(file.isNull(), false);
+    });
+
+    it("should set contentType from file extension", () => {
+      const file = new GilbertFile({ path: "/test.json" });
+      assert.strictEqual(file.contentType, "application/json");
+    });
+
+    it("should use provided contentType over extension detection", () => {
+      const file = new GilbertFile({ path: "/test.json", contentType: "text/plain" });
+      assert.strictEqual(file.contentType, "text/plain");
+    });
+
+    it("should handle directory type", () => {
+      const file = new GilbertFile({ path: "/dir", type: "directory" });
+      assert.strictEqual(file.isDirectory(), true);
+      assert.strictEqual(file.isFile(), false);
+    });
+
+    it("should handle content vs contents alias", () => {
+      const contents = new Uint8Array([1, 2, 3]);
+      const file = new GilbertFile({ content: contents }); // using 'content' alias
+      assert.strictEqual(file.contents, contents);
+      assert.strictEqual(file.size, 3);
+    });
+  });
+
+  describe("Path Management", () => {
+    it("should resolve relative paths", () => {
+      const file = new GilbertFile({ cwd: "/home", path: "file.txt" });
+      assert.strictEqual(file.path, "/home/file.txt");
+    });
+
+    it("should update path and recalculate contentType", () => {
+      const file = new GilbertFile({ path: "/test.txt" });
+      assert.strictEqual(file.contentType, "text/plain");
+
+      file.path = "/test.json";
+      assert.strictEqual(file.path, "/test.json");
+      assert.strictEqual(file.contentType, "application/json");
+    });
+
+    it("should update history when path changes", () => {
+      const file = new GilbertFile({ path: "/original.txt" });
+      assert.deepStrictEqual(file.history, ["/original.txt"]);
+
+      file.path = "/updated.txt";
+      assert.deepStrictEqual(file.history, ["/updated.txt"]);
+    });
+
+    it("should throw error for non-string path", () => {
+      const file = new GilbertFile();
+      assert.throws(() => {
+        file.path = 123;
+      }, /Path must be a string/);
+    });
+
+    it("should calculate relative path correctly", () => {
+      const file = new GilbertFile({
+        cwd: "/",
+        base: "/home/user",
+        path: "/home/user/docs/file.txt",
+      });
+      assert.strictEqual(file.relative, "docs/file.txt");
+    });
+  });
+
+  describe("Contents and Size Management", () => {
+    it("should calculate size for Uint8Array", () => {
+      const file = new GilbertFile();
+      const contents = new Uint8Array(100);
+      file.contents = contents;
+      assert.strictEqual(file.size, 100);
+    });
+
+    it("should recalculate size when contents change", () => {
+      const file = new GilbertFile({ contents: new Uint8Array(50) });
+      assert.strictEqual(file.size, 50);
+
+      file.contents = new Uint8Array(75);
+      assert.strictEqual(file.size, 75);
+
+      file.contents = null;
+      assert.strictEqual(file.size, 0);
+    });
+
+    it("should return null size for streams", () => {
+      const stream = new ReadableStream();
+      const file = new GilbertFile({ contents: stream });
+      assert.strictEqual(file.size, null);
+    });
+
+    it("should validate contents type", () => {
+      const file = new GilbertFile();
+      assert.throws(() => {
+        file.contents = "invalid string";
+      }, /Contents must be a Uint8Array, a ReadableStream, or null/);
+    });
+
+    it("should handle null contents", () => {
+      const file = new GilbertFile({ contents: null });
+      assert.strictEqual(file.contents, null);
+      assert.strictEqual(file.size, 0);
+      assert.strictEqual(file.isNull(), true);
+    });
+  });
+
+  describe("ContentType Management", () => {
+    it("should get and set contentType", () => {
+      const file = new GilbertFile();
+      file.contentType = "application/json";
+      assert.strictEqual(file.contentType, "application/json");
+    });
+
+    it("should validate contentType is string", () => {
+      const file = new GilbertFile();
+      assert.throws(() => {
+        file.contentType = 123;
+      }, /Content type must be a string/);
+    });
+
+    it("should preserve contentType for unknown extensions", () => {
+      const file = new GilbertFile({ path: "/test.json" });
+      assert.strictEqual(file.contentType, "application/json");
+
+      file.path = "/test.unknownext";
+      assert.strictEqual(file.contentType, "application/json"); // preserved
+    });
+  });
+
+  describe("Stat Management", () => {
+    it("should get and set stat object", () => {
+      const file = new GilbertFile();
+      const stat = { mtime: new Date(), ctime: new Date() };
+      file.stat = stat;
+      assert.strictEqual(file.stat, stat);
+    });
+
+    it("should allow null stat", () => {
+      const file = new GilbertFile();
+      file.stat = null;
+      assert.strictEqual(file.stat, null);
+    });
+
+    it("should validate stat.size matches content size", () => {
+      const file = new GilbertFile({ contents: new Uint8Array(100) });
+      assert.throws(() => {
+        file.stat = { size: 50 }; // conflicts with calculated size of 100
+      }, /Stat size \(50\) does not match calculated content size \(100\)/);
+    });
+
+    it("should allow stat.size that matches content size", () => {
+      const file = new GilbertFile({ contents: new Uint8Array(100) });
+      file.stat = { size: 100, mtime: new Date() };
+      assert.strictEqual(file.stat.size, 100);
+    });
+
+    it("should allow stat without size property", () => {
+      const file = new GilbertFile({ contents: new Uint8Array(100) });
+      const stat = { mtime: new Date(), ctime: new Date() };
+      file.stat = stat;
+      assert.strictEqual(file.stat, stat);
+    });
+
+    it("should create stat with createStat helper", () => {
+      const file = new GilbertFile({ contents: new Uint8Array(50) });
+      const mtime = new Date();
+      const stat = file.createStat({ mtime });
+
+      assert.strictEqual(stat.size, 50);
+      assert.strictEqual(stat.mtime, mtime);
+
+      // Should be able to set this stat without error
+      file.stat = stat;
+      assert.strictEqual(file.stat.size, 50);
+    });
+  });
+
+  describe("File Type Detection", () => {
+    it("should detect buffer contents", () => {
+      const file = new GilbertFile({ contents: new Uint8Array([1, 2, 3]) });
+      assert.strictEqual(file.isBuffer(), true);
+      assert.strictEqual(file.isStream(), false);
+      assert.strictEqual(file.isNull(), false);
+    });
+
+    it("should detect stream contents", () => {
+      const stream = new ReadableStream();
+      const file = new GilbertFile({ contents: stream });
+      assert.strictEqual(file.isStream(), true);
+      assert.strictEqual(file.isBuffer(), false);
+      assert.strictEqual(file.isNull(), false);
+    });
+
+    it("should detect null contents", () => {
+      const file = new GilbertFile({ contents: null });
+      assert.strictEqual(file.isNull(), true);
+      assert.strictEqual(file.isBuffer(), false);
+      assert.strictEqual(file.isStream(), false);
+    });
+
+    it("should detect directory", () => {
+      const file = new GilbertFile({ type: "directory" });
+      assert.strictEqual(file.isDirectory(), true);
+      assert.strictEqual(file.isFile(), false);
+      assert.strictEqual(file.isSymbolic(), false);
+    });
+
+    it("should detect regular file", () => {
+      const file = new GilbertFile({ contents: new Uint8Array([1, 2, 3]) });
+      assert.strictEqual(file.isFile(), true);
+      assert.strictEqual(file.isDirectory(), false);
+      assert.strictEqual(file.isSymbolic(), false);
+    });
+
+    it("should handle symbolic links", () => {
+      const file = new GilbertFile();
+      assert.strictEqual(file.isSymbolic(), false); // currently always false
+    });
+  });
+
+  describe("Vinyl Compatibility", () => {
+    it("should have _isVinyl property", () => {
+      const file = new GilbertFile();
+      assert.strictEqual(file._isVinyl, true);
+    });
+
+    it("should have _cwd property that maps to cwd", () => {
+      const file = new GilbertFile({ cwd: "/custom" });
+      assert.strictEqual(file._cwd, "/custom");
+      assert.strictEqual(file._cwd, file.cwd);
+    });
+
+    it("should have _contents property that maps to contents", () => {
+      const contents = new Uint8Array([1, 2, 3]);
+      const file = new GilbertFile({ contents });
+      assert.strictEqual(file._contents, contents);
+      assert.strictEqual(file._contents, file.contents);
+    });
+
+    it("should have _symlink property", () => {
+      const file = new GilbertFile();
+      assert.strictEqual(file._symlink, null);
+    });
+
+    it("should maintain vinyl compatibility properties as readonly", () => {
+      const file = new GilbertFile();
+      // These should be getters only, not settable
+      const descriptor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(file), "_isVinyl");
+      assert.ok(descriptor);
+      assert.strictEqual(typeof descriptor.get, "function");
+      assert.strictEqual(descriptor.set, undefined);
+    });
+  });
+
+  describe("Working Directory Management", () => {
+    it("should get and set cwd", () => {
+      const file = new GilbertFile();
+      file.cwd = "/new/cwd";
+      assert.strictEqual(file.cwd, "/new/cwd");
+    });
+
+    it("should validate cwd is string", () => {
+      const file = new GilbertFile();
+      assert.throws(() => {
+        file.cwd = 123;
+      }, /CWD must be a string/);
+    });
+
+    it("should get and set base", () => {
+      const file = new GilbertFile({ cwd: "/home" });
+      file.base = "/home/user";
+      assert.strictEqual(file.base, "/home/user");
+    });
+
+    it("should validate base is string", () => {
+      const file = new GilbertFile();
+      assert.throws(() => {
+        file.base = 123;
+      }, /Base must be a string/);
+    });
+  });
+
+  describe("Path Utilities", () => {
+    it("should handle null paths gracefully", () => {
+      const file = new GilbertFile({ path: null });
+      assert.strictEqual(file.path, null);
+      assert.strictEqual(file.extname, "");
+      assert.strictEqual(file.basename, "");
+      assert.strictEqual(file.stem, "");
+      assert.strictEqual(file.dirname, ".");
+    });
+
+    it("should calculate path properties correctly", () => {
+      const file = new GilbertFile({ path: "/home/user/docs/file.txt" });
+      assert.strictEqual(file.extname, ".txt");
+      assert.strictEqual(file.basename, "file.txt");
+      assert.strictEqual(file.stem, "file");
+      assert.strictEqual(file.dirname, "/home/user/docs");
+    });
+
+    it("should handle paths without extensions", () => {
+      const file = new GilbertFile({ path: "/home/user/README" });
+      assert.strictEqual(file.extname, "");
+      assert.strictEqual(file.basename, "README");
+      assert.strictEqual(file.stem, "README");
+    });
+
+    it("should handle root paths", () => {
+      const file = new GilbertFile({ path: "/file.txt" });
+      assert.strictEqual(file.dirname, "/");
+      assert.strictEqual(file.basename, "file.txt");
+    });
+  });
+
+  describe("Edge Cases and Error Handling", () => {
+    it("should handle empty Uint8Array", () => {
+      const file = new GilbertFile({ contents: new Uint8Array(0) });
+      assert.strictEqual(file.size, 0);
+      assert.strictEqual(file.isBuffer(), true);
+    });
+
+    it("should handle constructor with no options", () => {
+      const file = new GilbertFile();
+      assert.ok(file instanceof GilbertFile);
+      assert.strictEqual(file.contents, null);
+      assert.strictEqual(file.size, 0);
+    });
+
+    it("should handle complex path resolution", () => {
+      const file = new GilbertFile({
+        cwd: "/home/user",
+        path: "../other/file.txt",
+      });
+      assert.strictEqual(file.path, "/home/other/file.txt");
+    });
+
+    it("should maintain consistency when properties change", () => {
+      const file = new GilbertFile({ path: "/test.txt", contents: new Uint8Array(10) });
+
+      // Change path - should update contentType
+      file.path = "/test.json";
+      assert.strictEqual(file.contentType, "application/json");
+
+      // Change contents - should update size
+      file.contents = new Uint8Array(20);
+      assert.strictEqual(file.size, 20);
+
+      // Verify everything is still consistent
+      assert.strictEqual(file.isBuffer(), true);
+      assert.strictEqual(file.extname, ".json");
+    });
+  });
+});
 
 describe("GilbertFile", () => {
   describe("Constructor", () => {
@@ -51,7 +441,12 @@ describe("GilbertFile", () => {
     });
 
     it("should accept a Stream for contents", () => {
-      const stream = new Readable({ read() {} });
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new Uint8Array([1, 2, 3]));
+          controller.close();
+        },
+      });
       const file = new GilbertFile({ path: "file.txt", contents: stream });
       assert.strictEqual(file.contents, stream, "Contents should be the provided Stream");
       assert.strictEqual(file.isStream(), true, "isStream() should be true");
@@ -137,7 +532,12 @@ describe("GilbertFile", () => {
     });
 
     it("should set contents (Stream)", () => {
-      const newStream = new Readable({ read() {} });
+      const newStream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new Uint8Array([1, 2, 3]));
+          controller.close();
+        },
+      });
       file.contents = newStream;
       assert.strictEqual(file.contents, newStream);
       assert.strictEqual(file.isStream(), true);
@@ -205,7 +605,14 @@ describe("GilbertFile", () => {
     });
 
     it("isStream() should return true for Stream contents", () => {
-      const file = new GilbertFile({ contents: new Readable({ read() {} }) });
+      const file = new GilbertFile({
+        contents: new ReadableStream({
+          start(controller) {
+            controller.enqueue(new Uint8Array([1, 2, 3]));
+            controller.close();
+          },
+        }),
+      });
       assert.strictEqual(file.isStream(), true);
       assert.strictEqual(file.isBuffer(), false);
       assert.strictEqual(file.isNull(), false);

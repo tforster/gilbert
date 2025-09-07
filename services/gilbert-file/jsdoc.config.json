@@ -1,0 +1,24 @@
+{
+  "source": {
+    "include": ["./lib/"],
+    "includePattern": "\\.(js|mjs)$",
+    "exclude": ["node_modules/", "tests/"]
+  },
+  "opts": {
+    "destination": "./docs/",
+    "recurse": true,
+    "readme": "./README.md"
+  },
+  "plugins": ["plugins/markdown"],
+  "templates": {
+    "cleverLinks": false,
+    "monospaceLinks": false
+  },
+  "tags": {
+    "allowUnknownTags": true,
+    "dictionaries": ["jsdoc", "closure"]
+  },
+  "metadata": {
+    "title": "GilbertFile Documentation"
+  }
+}
