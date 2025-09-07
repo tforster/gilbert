@@ -1,18 +1,67 @@
-// System imports
-import path from "node:path";
-import { Buffer } from "node:buffer";
-
 // Third-party imports
 import mime from "mime";
 
 // Constants
 const DEFAULT_CONTENT_TYPE = "application/octet-stream";
 
+// Web API native path utilities
+const webPath = {
+  resolve(...paths) {
+    // Convert relative paths to absolute using URL constructor
+    const base = paths[0].startsWith("/") ? `file://${paths[0]}` : `file://${globalThis.process?.cwd?.() || "/"}/${paths[0]}`;
+    let url = new URL(base);
+
+    for (let i = 1; i < paths.length; i++) {
+      if (paths[i].startsWith("/")) {
+        url = new URL(`file://${paths[i]}`);
+      } else {
+        url = new URL(paths[i], url);
+      }
+    }
+
+    return url.pathname;
+  },
+
+  relative(from, to) {
+    const fromParts = from.split("/").filter(Boolean);
+    const toParts = to.split("/").filter(Boolean);
+
+    // Find common base
+    let commonLength = 0;
+    while (commonLength < fromParts.length && commonLength < toParts.length && fromParts[commonLength] === toParts[commonLength]) {
+      commonLength++;
+    }
+
+    // Build relative path
+    const upLevels = fromParts.length - commonLength;
+    const downPath = toParts.slice(commonLength);
+
+    return "../".repeat(upLevels) + downPath.join("/");
+  },
+
+  extname(filePath) {
+    const lastDot = filePath.lastIndexOf(".");
+    const lastSlash = filePath.lastIndexOf("/");
+    return lastDot > lastSlash ? filePath.slice(lastDot) : "";
+  },
+
+  basename(filePath, ext = "") {
+    const lastSlash = filePath.lastIndexOf("/");
+    const name = lastSlash >= 0 ? filePath.slice(lastSlash + 1) : filePath;
+    return ext && name.endsWith(ext) ? name.slice(0, -ext.length) : name;
+  },
+
+  dirname(filePath) {
+    const lastSlash = filePath.lastIndexOf("/");
+    return lastSlash > 0 ? filePath.slice(0, lastSlash) : lastSlash === 0 ? "/" : ".";
+  },
+};
+
 /**
  * @description Implements a virtual file object for Gilbert to use in stream processing
  * @class GilbertFile
  */
-class GilbertFile {
+export default class GilbertFile {
   // Private fields
   #cwd;
   #base;
@@ -27,7 +76,12 @@ class GilbertFile {
 
   /**
    * Creates an instance of GilbertFile.
-   * @param {Object} [options={ base, cwd, path, contents, stat: null }]
+   * @param {Object} [options] - Configuration options for the file
+   * @param {string} [options.base] - The base directory for relative path calculations
+   * @param {string} [options.cwd] - The current working directory
+   * @param {string} [options.path] - The file path
+   * @param {Uint8Array|ReadableStream|null} [options.contents] - The file contents
+   * @param {Object} [options.stat] - File system stats object
    * @memberof GilbertFile
    */
   constructor(options = {}) {
@@ -40,17 +94,17 @@ class GilbertFile {
     }
 
     // Initialise private fields
-    this.#cwd = options.cwd || process.cwd();
-    this.#base = path.resolve(this.#cwd, options.base || this.#cwd);
+    this.#cwd = options.cwd || globalThis.process?.cwd?.() || "/";
+    this.#base = webPath.resolve(this.#cwd, options.base || this.#cwd);
 
     // Resolve path if it's a string, otherwise use options.path (e.g., null)
-    this.#path = typeof options.path === "string" ? path.resolve(this.#cwd, options.path) : options.path;
+    this.#path = typeof options.path === "string" ? webPath.resolve(this.#cwd, options.path) : options.path;
     this.#stat = options.stat;
 
     // Initialize contents (uses the setter)
-    this.contents = options.contents;
-    this.#isDirectory = options.contents === null;
-
+    this.contents = options.content;
+    this.#isDirectory = options.type === "directory";
+    this.size = options.size || (this.isBuffer() ? this.contents.length : this.isStream() ? null : 0);
     // Initialize MIME type (Uses the setter)
     this.contentType = mime.getType(this.path) || DEFAULT_CONTENT_TYPE;
 
@@ -82,9 +136,9 @@ class GilbertFile {
     }
 
     // Update base and path based on new cwd
-    this.#base = path.resolve(val, this.#base);
+    this.#base = webPath.resolve(val, this.#base);
     if (this.#path) {
-      this.#path = path.relative(val, this.#path);
+      this.#path = webPath.relative(val, this.#path);
     }
 
     this.#cwd = val;
@@ -109,7 +163,7 @@ class GilbertFile {
       throw new Error("Path must be a string.");
     }
 
-    this.#path = path.resolve(this.#cwd, val);
+    this.#path = webPath.resolve(this.#cwd, val);
 
     // The history getter is used by VinylFs
     this.#history = [this.#path];
@@ -127,7 +181,6 @@ class GilbertFile {
   /**
    * @description Sets the base directory for relative path calculations.
    * @param {string} val  The base directory to set.
-   * @return {string}
    * @memberof GilbertFile
    */
   set base(val) {
@@ -162,8 +215,8 @@ class GilbertFile {
   }
 
   /**
-   * @description Gets the contents of the file (Buffer, Stream, or null).
-   * @return {Buffer|Readable|null}
+   * @description Gets the contents of the file (Uint8Array, ReadableStream, or null).
+   * @return {Uint8Array|ReadableStream|null}
    * @memberof GilbertFile
    */
   get contents() {
@@ -171,20 +224,20 @@ class GilbertFile {
   }
 
   /**
-   * @description Sets the contents of the file (Buffer, Stream, or null). Used by the constructor.
-   * @param {Buffer|Readable|null} newContents  The new contents to set.
+   * @description Sets the contents of the file (Uint8Array, ReadableStream, or null). Used by the constructor.
+   * @param {Uint8Array|ReadableStream|null} newContents  The new contents to set.
    * @memberof GilbertFile
    */
   set contents(newContents) {
-    if (newContents !== null && !Buffer.isBuffer(newContents) && typeof newContents.pipe !== "function") {
-      throw new Error("Contents must be a Buffer, a Stream, or null.");
+    if (newContents !== null && !(newContents instanceof Uint8Array) && typeof newContents.getReader !== "function") {
+      throw new Error("Contents must be a Uint8Array, a ReadableStream, or null.");
     }
     this.#contents = newContents;
 
     // Determine #contentKind based on newContents
-    if (Buffer.isBuffer(newContents)) {
+    if (newContents instanceof Uint8Array) {
       this.#contentKind = "buffer";
-    } else if (newContents && typeof newContents.pipe === "function") {
+    } else if (newContents && typeof newContents.getReader === "function") {
       this.#contentKind = "stream";
     } else if (newContents === null) {
       this.#contentKind = "null";
@@ -201,7 +254,7 @@ class GilbertFile {
    * @memberof GilbertFile
    */
   get extname() {
-    return path.extname(this.path);
+    return webPath.extname(this.path);
   }
 
   /**
@@ -228,7 +281,7 @@ class GilbertFile {
    * @memberof GilbertFile
    */
   get relative() {
-    return path.relative(this.#base, this.path);
+    return webPath.relative(this.#base, this.path);
   }
 
   /**
@@ -237,7 +290,7 @@ class GilbertFile {
    * @memberof GilbertFile
    */
   get stem() {
-    return path.basename(this.path, this.extname);
+    return webPath.basename(this.path, this.extname);
   }
 
   /**
@@ -246,7 +299,7 @@ class GilbertFile {
    * @memberof GilbertFile
    */
   get dirname() {
-    return path.dirname(this.path);
+    return webPath.dirname(this.path);
   }
 
   /**
@@ -255,7 +308,7 @@ class GilbertFile {
    * @memberof GilbertFile
    */
   get basename() {
-    return path.basename(this.path);
+    return webPath.basename(this.path);
   }
 
   /**
@@ -276,7 +329,7 @@ class GilbertFile {
   }
 
   /**
-   * @description Checks if the contents are a Buffer.
+   * @description Checks if the contents are a Uint8Array.
    * @return {boolean}
    * @memberof GilbertFile
    */
@@ -285,7 +338,7 @@ class GilbertFile {
   }
 
   /**
-   * @description Checks if the contents are a Stream.
+   * @description Checks if the contents are a ReadableStream.
    * @return {boolean}
    * @memberof GilbertFile
    */
@@ -342,5 +395,3 @@ class GilbertFile {
     return false;
   }
 }
-
-export default GilbertFile;

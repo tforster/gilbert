@@ -44,6 +44,7 @@
   "workspaces": [
     "services/gilbert-cli",
     "services/gilbert-file",
-    "services/gilbert"
+    "services/gilbert",
+    "services/git-stream"
   ]
 }

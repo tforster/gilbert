@@ -189,16 +189,13 @@ class Gilbert {
   async compile(params) {
     const pipelinePromises = [];
 
-    // For compiling data and templates, both streams must be present. Graceful degredation means static files can still be parsed.
+    // For compiling data and templates, both streams must be present.
     if (params?.uris?.data?.stream && params?.uris?.theme?.stream) {
       // Create a new instance of the TemplatePipeline
       const templatePipeline = new TemplatePipeline(this.#options, params.uris.data.stream, params.uris.theme.stream);
 
-      // Prep fetches the data and templates and we need both to be ready before we can build
-      await templatePipeline.prep();
-
       // Start building files into the stream
-      templatePipeline.build();
+      await templatePipeline.build();
 
       // Process the template pipeline stream
       pipelinePromises.push(this.#processPipeline(templatePipeline.stream, "Templates"));

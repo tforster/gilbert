@@ -1,0 +1,17 @@
+{
+  "author": "tforster",
+  "dependencies": {
+    "@tforster/gilbert-file": "^0.1.0"
+  },
+  "description": "GitHub repository source for Gilbert static site generator",
+  "exports": {
+    ".": "./lib/index.js"
+  },
+  "files": [
+    "lib/"
+  ],
+  "main": "lib/index.js",
+  "name": "@tforster/gilbert-github",
+  "type": "module",
+  "version": "0.1.0"
+}

@@ -6,7 +6,7 @@
   "dependencies": {
     "autoprefixer": "^10.4.20",
     "esbuild": "^0.25.0",
-    "gilbert-file": "@tforster/gilbert-file@1.0.0-beta.5",
+    "@tforster/gilbert-file": "^0.1.0",
     "handlebars": "^4.7.8",
     "html-minifier": "^4.0.0",
     "mime": "^4.0.6",
