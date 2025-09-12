@@ -3,7 +3,6 @@ import handlebars from "handlebars";
 import { minify as htmlMinify } from "html-minifier";
 import { log, vinyl } from "./Utils.js";
 import mime from "mime";
-import { Readable } from "stream";
 
 // Web API Streams utilities
 import WebStreamUtils from "./WebStreamUtils.js";
@@ -105,8 +104,6 @@ class TemplatePipeline {
    */
   async #loadTemplates() {
     console.log("DEBUG: loadTemplates starting");
-    console.log("DEBUG: Templates stream type:", this.#readableTemplatesStream?.constructor?.name);
-    console.log("DEBUG: Templates stream has pipeTo:", typeof this.#readableTemplatesStream?.pipeTo);
 
     // Create a collector function for processing Web API streams
     const collector = WebStreamUtils.createFileCollector((file) => {

@@ -8,35 +8,53 @@ import path from "node:path";
 import GilbertFS from "../lib/index.js";
 
 // Test directory
-const TEST_DIR = "./test-output";
+const TEST_DIR = "./tests/output";
 
 test("GilbertFS should write files to filesystem", async () => {
   // Initial cleanup removed - keeping existing files for inspection
 
-  // Create a GilbertFS instance
-  const gilbertFS = new GilbertFS({ base: TEST_DIR });
+  // Create a destination stream
+  const destStream = GilbertFS.dest(TEST_DIR);
 
   // Create mock GilbertFile objects
   const mockFiles = [
     {
-      path: "/index.html",
-      contents: new Uint8Array(Buffer.from("<html><body>Hello World</body></html>")),
+      path: "/home/tforster/dev/TechSmarts/WebProducer/Gilbert/services/gilbert-fs/tests/input/index.html",
+      relative: "index.html",
+      contents: new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode("<html><body>Hello World</body></html>"));
+          controller.close();
+        },
+      }),
       isDirectory: () => false,
     },
     {
-      path: "/css/styles.css",
-      contents: new Uint8Array(Buffer.from("body { margin: 0; }")),
+      path: "/home/tforster/dev/TechSmarts/WebProducer/Gilbert/services/gilbert-fs/tests/input/css/styles.css",
+      relative: "css/styles.css",
+      contents: new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode("body { margin: 0; }"));
+          controller.close();
+        },
+      }),
       isDirectory: () => false,
     },
     {
-      path: "/js/main.js",
-      contents: new Uint8Array(Buffer.from('console.log("Hello from JS");')),
+      path: "/home/tforster/dev/TechSmarts/WebProducer/Gilbert/services/gilbert-fs/tests/input/js/main.js",
+      relative: "js/main.js",
+      contents: new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('console.log("Hello from JS");'));
+          controller.close();
+        },
+      }),
       isDirectory: () => false,
     },
   ];
 
-  // Get writer and write all files
-  const writer = gilbertFS.getWriter();
+  // Write all files using the stream
+  const writer = destStream.getWriter();
 
   for (const file of mockFiles) {
     await writer.write(file);
@@ -60,8 +78,8 @@ test("GilbertFS should write files to filesystem", async () => {
 test("GilbertFS should handle ReadableStream contents", async () => {
   // Initial cleanup removed - keeping existing files for inspection
 
-  // Create a GilbertFS instance
-  const gilbertFS = new GilbertFS({ base: TEST_DIR });
+  // Create a destination stream
+  const destStream = GilbertFS.dest(TEST_DIR);
 
   // Create a ReadableStream with content
   const content = "Stream content test";
@@ -74,12 +92,13 @@ test("GilbertFS should handle ReadableStream contents", async () => {
 
   const mockFile = {
     path: "/stream-test.txt",
+    relative: "stream-test.txt",
     contents: stream,
     isDirectory: () => false,
   };
 
   // Write the file
-  const writer = gilbertFS.getWriter();
+  const writer = destStream.getWriter();
   await writer.write(mockFile);
   await writer.close();
 
@@ -93,17 +112,18 @@ test("GilbertFS should handle ReadableStream contents", async () => {
 test("GilbertFS should skip directory files", async () => {
   // Initial cleanup removed - keeping existing files for inspection
 
-  // Create a GilbertFS instance
-  const gilbertFS = new GilbertFS({ base: TEST_DIR });
+  // Create a destination stream
+  const destStream = GilbertFS.dest(TEST_DIR);
 
   const mockDirectory = {
     path: "/some-dir",
+    relative: "some-dir",
     contents: null,
     isDirectory: () => true,
   };
 
   // Write the directory file (should be skipped)
-  const writer = gilbertFS.getWriter();
+  const writer = destStream.getWriter();
   await writer.write(mockDirectory);
   await writer.close();
 
@@ -119,32 +139,26 @@ test("GilbertFS should skip directory files", async () => {
   // Clean up removed - files will remain for inspection
 });
 
-test("GilbertFS.src should throw not implemented error", () => {
-  assert.throws(() => {
-    GilbertFS.src();
-  }, /not yet implemented/);
-});
-
 test("GilbertFS.dest should create WritableStream", () => {
   const stream = GilbertFS.dest("./test-dest");
-  assert.ok(stream instanceof GilbertFS);
   assert.ok(stream instanceof WritableStream);
 });
 
 test("GilbertFS should handle null contents", async () => {
   // Initial cleanup removed - keeping existing files for inspection
 
-  // Create a GilbertFS instance
-  const gilbertFS = new GilbertFS({ base: TEST_DIR });
+  // Create a destination stream
+  const destStream = GilbertFS.dest(TEST_DIR);
 
   const mockFile = {
     path: "/empty.txt",
+    relative: "empty.txt",
     contents: null,
     isDirectory: () => false,
   };
 
   // Write the file
-  const writer = gilbertFS.getWriter();
+  const writer = destStream.getWriter();
   await writer.write(mockFile);
   await writer.close();
 

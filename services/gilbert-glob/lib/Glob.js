@@ -96,4 +96,27 @@ export default class Glob {
   test(path) {
     return this.regex.test(path);
   }
+
+  /**
+   * Utility method to test multiple glob patterns against a path
+   * @param {string} path - The file path to test
+   * @param {string[]} patterns - Array of glob patterns to test against
+   * @returns {boolean} True if the path matches any pattern, false otherwise
+   * @static
+   */
+  static testAny(path, patterns) {
+    return patterns.some((pattern) => new Glob(pattern).test(path));
+  }
+
+  /**
+   * Utility method to filter an array of paths by glob patterns
+   * @param {string[]} paths - Array of file paths to filter
+   * @param {string[]} patterns - Array of glob patterns to match against
+   * @returns {string[]} Array of paths that match any of the patterns
+   * @static
+   */
+  static filter(paths, patterns) {
+    const compiledPatterns = patterns.map((pattern) => new Glob(pattern));
+    return paths.filter((path) => compiledPatterns.some((glob) => glob.test(path)));
+  }
 }

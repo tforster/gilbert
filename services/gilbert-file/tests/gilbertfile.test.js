@@ -656,4 +656,138 @@ describe("GilbertFile", () => {
       });
     });
   });
+
+  describe("clone()", () => {
+    it("should create an exact copy when called with no overrides", () => {
+      const contents = new Uint8Array([1, 2, 3, 4]);
+      const stat = { size: 4, mtime: new Date() };
+      const original = new GilbertFile({
+        path: "/test/file.txt",
+        base: "/test",
+        cwd: "/project",
+        contents,
+        stat,
+        contentType: "text/plain",
+      });
+
+      const cloned = original.clone();
+
+      // Should be a different instance
+      assert.notStrictEqual(cloned, original);
+
+      // But have the same properties
+      assert.strictEqual(cloned.path, original.path);
+      assert.strictEqual(cloned.base, original.base);
+      assert.strictEqual(cloned.cwd, original.cwd);
+      assert.strictEqual(cloned.contents, original.contents);
+      assert.strictEqual(cloned.stat, original.stat);
+      assert.strictEqual(cloned.contentType, original.contentType);
+    });
+
+    it("should override specified properties", () => {
+      const originalContents = new Uint8Array([1, 2, 3]);
+      const newContents = new Uint8Array([4, 5, 6]);
+
+      const original = new GilbertFile({
+        path: "/test/file.txt",
+        base: "/test",
+        contents: originalContents,
+        contentType: "text/plain",
+      });
+
+      const cloned = original.clone({
+        path: "/test/modified.js",
+        contents: newContents,
+        contentType: "application/javascript",
+      });
+
+      // Overridden properties should be different
+      assert.strictEqual(cloned.path, "/test/modified.js");
+      assert.strictEqual(cloned.contents, newContents);
+      assert.strictEqual(cloned.contentType, "application/javascript");
+
+      // Non-overridden properties should be the same
+      assert.strictEqual(cloned.base, original.base);
+    });
+
+    it("should work with ReadableStream contents", () => {
+      const originalStream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new Uint8Array([1, 2, 3]));
+          controller.close();
+        },
+      });
+
+      const newStream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new Uint8Array([4, 5, 6]));
+          controller.close();
+        },
+      });
+
+      const original = new GilbertFile({
+        path: "/test/file.txt",
+        contents: originalStream,
+      });
+
+      const cloned = original.clone({ contents: newStream });
+
+      assert.strictEqual(cloned.contents, newStream);
+      assert.strictEqual(cloned.isStream(), true);
+      assert.strictEqual(original.contents, originalStream);
+    });
+
+    it("should preserve null contents when cloning", () => {
+      const original = new GilbertFile({
+        path: "/test/empty.txt",
+        contents: null,
+      });
+
+      const cloned = original.clone({ path: "/test/also-empty.txt" });
+
+      assert.strictEqual(cloned.contents, null);
+      assert.strictEqual(cloned.isNull(), true);
+      assert.strictEqual(cloned.path, "/test/also-empty.txt");
+    });
+
+    it("should handle directory files correctly", () => {
+      const original = new GilbertFile({
+        path: "/test/dir",
+        type: "directory",
+        contents: null,
+      });
+
+      const cloned = original.clone({ path: "/test/other-dir" });
+
+      assert.strictEqual(cloned.isDirectory(), true);
+      assert.strictEqual(cloned.path, "/test/other-dir");
+      assert.strictEqual(cloned.contents, null);
+    });
+
+    it("should work in transform scenarios", () => {
+      // Simulate a typical transform use case
+      const source = new GilbertFile({
+        path: "/src/index.ts",
+        base: "/src",
+        contents: new Uint8Array(Buffer.from("const x: number = 42;")),
+        contentType: "text/typescript",
+      });
+
+      // Transform: TypeScript → JavaScript
+      const compiled = source.clone({
+        path: "/src/index.js",
+        contents: new Uint8Array(Buffer.from("const x = 42;")),
+        contentType: "application/javascript",
+      });
+
+      assert.strictEqual(compiled.path, "/src/index.js");
+      assert.strictEqual(compiled.base, "/src"); // Preserved
+      assert.strictEqual(compiled.contentType, "application/javascript");
+      assert.strictEqual(new TextDecoder().decode(compiled.contents), "const x = 42;");
+
+      // Original should be unchanged
+      assert.strictEqual(source.path, "/src/index.ts");
+      assert.strictEqual(new TextDecoder().decode(source.contents), "const x: number = 42;");
+    });
+  });
 });

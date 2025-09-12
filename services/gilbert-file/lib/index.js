@@ -513,4 +513,34 @@ export default class GilbertFile {
   get _contents() {
     return this.#contents;
   }
+
+  /**
+   * @description Creates a copy of this GilbertFile with optional property overrides.
+   * This is useful for transforms that need to modify certain properties while preserving others.
+   * @param {GilbertFileOptions} [overrides={}] - Properties to override in the cloned file
+   * @returns {GilbertFile} A new GilbertFile instance with the same properties, plus any overrides
+   * @example
+   * // Clone with new contents but preserve all metadata
+   * const minified = originalFile.clone({ contents: minifiedStream });
+   *
+   * // Clone with new path and contents
+   * const compiled = sourceFile.clone({
+   *   path: sourceFile.path.replace('.ts', '.js'),
+   *   contents: compiledContents
+   * });
+   * @memberof GilbertFile
+   */
+  clone(overrides = {}) {
+    return new GilbertFile({
+      // Copy all current properties
+      path: this.path,
+      base: this.base,
+      cwd: this.cwd,
+      contents: this.contents,
+      stat: this.stat,
+      contentType: this.contentType,
+      // Apply any overrides
+      ...overrides,
+    });
+  }
 }

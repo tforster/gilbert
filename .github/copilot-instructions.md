@@ -1,6 +1,6 @@
 # Copilot Instructions for Gilbert (WebProducer)
 
-## Project Overview
+##2. **Runtime-Agnostic Engine**: Core engine uses only Web API streams (ReadableStream, TransformStream, WritableStream) 3. **Integration Layer Separation**: Environment-specific adapters handle filesystem or network I/O 4. **Selective Pipeline Execution**: Engine supports build vs. publish modes via pipeline configuration 5. **Streams-first**: **Migrating from Node.js streams to Web Streams** for WinterCG compatibility and runtime portability (Cloudflare Workers, Bun, Deno, etc.) 6. **Pipeline-based**: Separate pipelines for templates, scripts, stylesheets, and static files 7. **Virtual files**: Uses GilbertFile objects (custom Vinyl-like implementation) - already runtime-agnostic 8. **Data-driven**: Templates merge with pre-transformed JSON data (no data transformation within Gilbert) 9. **Performance-first**: Designed for 200+ pages/second generation with minimal memory footprintt Overview
 
 Gilbert is a **streams-based, data-driven static site generator** that processes content through pipeline architectures. Unlike traditional file-based generators, Gilbert transforms data streams through specialized pipelines to generate HTML, CSS, and JavaScript with exceptional performance.
 
@@ -47,14 +47,16 @@ Gilbert's architecture is being driven by StopTheParty.ca, which uses:
 
 ### Key Design Principles
 
-1. **Runtime-Agnostic Engine**: Core engine uses only Web API streams (ReadableStream, TransformStream, WritableStream)
-2. **Integration Layer Separation**: Environment-specific adapters handle filesystem or network I/O
-3. **Selective Pipeline Execution**: Engine supports build vs. publish modes via pipeline configuration
-4. **Streams-first**: **Migrating from Node.js streams to Web Streams** for WinterCG compatibility and runtime portability (Cloudflare Workers, Bun, Deno, etc.)
-5. **Pipeline-based**: Separate pipelines for templates, scripts, stylesheets, and static files
-6. **Virtual files**: Uses GilbertFile objects (custom Vinyl-like implementation) - already runtime-agnostic
-7. **Data-driven**: Templates merge with pre-transformed JSON data (no data transformation within Gilbert)
-8. **Performance-first**: Designed for 200+ pages/second generation with minimal memory footprint
+1. **GilbertFile Objects in Web API Streams**: **FUNDAMENTAL ARCHITECTURE** - The entire Gilbert ecosystem operates on the principle that **GilbertFile objects flow through Web API streams**. All src() methods output `ReadableStream<GilbertFile>`, all pipelines accept and return `TransformStream<GilbertFile, GilbertFile>`, and all dest() methods accept `WritableStream<GilbertFile>`. This unified contract enables seamless composition and runtime portability.
+
+2. **Runtime-Agnostic Engine**: Core engine uses only Web API streams (ReadableStream, TransformStream, WritableStream)
+3. **Integration Layer Separation**: Environment-specific adapters handle filesystem or network I/O
+4. **Selective Pipeline Execution**: Engine supports build vs. publish modes via pipeline configuration
+5. **Streams-first**: **Migrating from Node.js streams to Web Streams** for WinterCG compatibility and runtime portability (Cloudflare Workers, Bun, Deno, etc.)
+6. **Pipeline-based**: Separate pipelines for templates, scripts, stylesheets, and static files
+7. **Virtual files**: Uses GilbertFile objects (custom Vinyl-like implementation) - already runtime-agnostic
+8. **Data-driven**: Templates merge with pre-transformed JSON data (no data transformation within Gilbert)
+9. **Performance-first**: Designed for 200+ pages/second generation with minimal memory footprint
 
 ### Architecture Evolution
 

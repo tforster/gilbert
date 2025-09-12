@@ -1,7 +1,8 @@
 {
   "author": "tforster",
   "dependencies": {
-    "@tforster/gilbert-file": "^0.1.0"
+    "@tforster/gilbert-file": "^0.1.0",
+    "@tforster/gilbert-glob": "^0.1.0"
   },
   "description": "GitHub repository source for Gilbert static site generator",
   "exports": {

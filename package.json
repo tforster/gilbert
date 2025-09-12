@@ -52,7 +52,8 @@
     "services/gilbert-cli",
     "services/gilbert-file",
     "services/gilbert",
-    "services/git-stream",
-    "services/gilbert-fs"
+    "services/gilbert-fs",
+    "services/gilbert-github",
+    "services/gilbert-glob"
   ]
 }

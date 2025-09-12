@@ -2,9 +2,9 @@
 
 // Third party imports
 import GilbertFile from "@tforster/gilbert-file";
+import { Glob } from "@tforster/gilbert-glob";
 
 // Project imports
-import Glob from "./Glob.js";
 import TarStream from "./TarStream.js";
 
 /**
