@@ -105,6 +105,7 @@ class GilbertFS {
     // Resolve the full output path using relative path (Vinyl convention)
     const outputPath = path.join(basePath, file.relative);
 
+    // TODO: Check performance of this vs wrapping file saving in try/catch and creating path on error
     // Ensure the directory exists
     const dirPath = path.dirname(outputPath);
     await mkdir(dirPath, { recursive: true });

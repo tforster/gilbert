@@ -7,10 +7,6 @@ test
 test-output
 
 # Generated documentation
-docs/api/
-**/docs/
-API.md
-**/API.md
 
 ### Misc. Tooling ###
 
