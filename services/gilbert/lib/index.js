@@ -5,7 +5,7 @@ import mime from "mime";
 import TemplatePipeline from "./TemplatePipeline.js";
 import StaticFilesPipeline from "./StaticFilesPipeline.js";
 import ScriptsPipeline from "./ScriptsPipeline.js";
-import StylesheetsPipeline from "./StylesheetsPipeline.js"; // TODO: Re-enable after Web API streams conversion
+import StylesheetsPipeline from "./StylesheetsPipeline.js";
 
 // Crude global exception handler
 process.on("uncaughtException", (err) => {
@@ -254,22 +254,18 @@ class Gilbert {
       }
     }
 
-    // // CSS
-    // if (params.stylesheets) {
-    //   const stylesheetsPipeline = new StylesheetsPipeline(this.#options, params.stylesheets);
+    // Stylesheets (CSS bundling and optimization)
+    if (params.stylesheets) {
+      const stylesheetsPipeline = new StylesheetsPipeline(params.stylesheets, params.stylesheetsOptions);
+      const stylesheetsStream = await stylesheetsPipeline.getReadableStream();
 
-    //   // Building is asynchronous because esbuild has to read from the filesystem
-    //   const results = await stylesheetsPipeline.build();
+      pipelinePromises.push(this.#processPipeline(stylesheetsStream, "Stylesheets"));
 
-    //   // TODO: Convert StylesheetsPipeline to Web API streams
-    //   // For now, assume it will return a Web API ReadableStream
-    //   pipelinePromises.push(this.#processPipeline(stylesheetsPipeline.stream, "Stylesheets"));
-
-    //   if (this.#options.debug) {
-    //     // eslint-disable-next-line no-console
-    //     console.log("Stylesheets pipeline started", results);
-    //   }
-    // }
+      if (this.#options.debug) {
+        // eslint-disable-next-line no-console
+        console.log("Stylesheets pipeline started");
+      }
+    }
 
     // Start processing all pipelines concurrently
     // The individual pipelines will close the merge stream when they're all done

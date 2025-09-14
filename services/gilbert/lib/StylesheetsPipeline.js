@@ -1,5 +1,4 @@
 // System dependencies
-import { Readable } from "stream";
 
 // Third party dependencies
 import { build } from "esbuild";
@@ -7,98 +6,124 @@ import autoprefixer from "autoprefixer";
 import postcss from "postcss";
 
 // Project dependencies
-import { vinyl } from "./Utils.js";
+import GilbertFile from "@tforster/gilbert-file";
 
 /**
- * @description: A Gilbert pipeline that takes in a stream of css files and pipes them through the esbuild bundler for optimisation.
+ * @description: A Gilbert pipeline that takes entry points and uses esbuild to bundle, optimize, and minify CSS files
  * @class StylesheetsPipeline
  */
 export default class StylesheetsPipeline {
   // Private properties
-  #options;
   #entryPoints;
+  #esbuildOptions;
 
   /**
    * Creates an instance of StylesheetsPipeline.
-   * @param {object} options: Hash of runtime options
+   * @param {string[]} entryPoints: Array of entry point paths relative to app root
+   * @param {object} esbuildOptions: Optional esbuild configuration to override defaults
    * @memberof StylesheetsPipeline
    */
-  constructor(options, entryPoints) {
-    this.#options = options;
-    this.#entryPoints = entryPoints;
+  constructor(entryPoints, esbuildOptions = {}) {
+    this.#entryPoints = entryPoints || [];
+    this.#esbuildOptions = esbuildOptions;
+  }
 
-    // Create a new Readable stream as pipable output
-    this.stream = new Readable({
-      objectMode: true,
-      read: function (f) {
-        this.push(null);
+  /**
+   * @description: Processes CSS files through esbuild bundler for optimization
+   * @return {Promise<ReadableStream>}: Web API ReadableStream of bundled files
+   * @memberof StylesheetsPipeline
+   */
+  async getReadableStream() {
+    const outputFiles = await this.#buildStylesheets();
+
+    return new ReadableStream({
+      start(controller) {
+        // Process each output file from esbuild
+        for (const outputFile of outputFiles) {
+          // Extract just the filename from the ESBuild output path
+          // ESBuild outputs with absolute paths like "/main.css", we want just "main.css"
+          const filename = outputFile.path.replace(/^\//, "");
+
+          // Create a GilbertFile object with virtual root cwd like Utils.vinyl() does
+          const gilbertFile = new GilbertFile({
+            cwd: "/", // Virtual root - matches Utils.vinyl() behavior
+            path: filename, // Just the filename
+            contents: Buffer.from(outputFile.contents),
+          });
+
+          // Enqueue the file to the stream
+          controller.enqueue(gilbertFile);
+        }
+
+        // Close the stream
+        controller.close();
       },
     });
   }
 
   /**
    * @description: Builds the minified stylesheet(s) using esbuild
-   * @return {string}:  Results with optional statistics
+   * @return {Promise<Array>}: Array of output files from esbuild
    * @memberof StylesheetsPipeline
    */
-  async build() {
+  async #buildStylesheets() {
     try {
-      const result = await build({
+      // Default esbuild configuration for CSS
+      const defaultConfig = {
         entryPoints: this.#entryPoints,
         outdir: "/",
         bundle: true,
         sourcemap: true,
-        target: ["es2020"],
+        target: ["es2020"], // CSS target for browser compatibility
         minify: true,
         write: false,
         metafile: true,
         loader: { ".eot": "file", ".ttf": "dataurl", ".woff": "file", ".svg": "file" },
-      });
+      };
 
-      // Iterate through the output files and push them to the mergeStream
-      for (const out of result.outputFiles) {
-        const path = out.path;
-        let contents;
+      // Merge with user-provided esbuild options
+      const config = { ...defaultConfig, ...this.#esbuildOptions };
 
-        // Check for any required auto prefixing
-        if (path.endsWith(".css") && this.#options?.autoprefixCss) {
-          contents = Buffer.from(await this.#autoPrefix(out.text));
-        } else {
-          contents = Buffer.from(out.contents);
+      // Ensure entryPoints and essential options aren't overridden incorrectly
+      config.entryPoints = this.#entryPoints;
+      config.write = false; // Always false for Web API streams
+
+      const result = await build(config);
+
+      // Process output files for autoprefixing if needed
+      const processedFiles = [];
+      for (const outputFile of result.outputFiles) {
+        let contents = outputFile.contents;
+
+        // Check for autoprefixing on CSS files
+        if (outputFile.path.endsWith(".css") && this.#esbuildOptions?.autoprefixCss) {
+          const autoprefixed = await this.#autoPrefix(outputFile.text);
+          contents = Buffer.from(autoprefixed);
         }
 
-        // Create a virtual file object
-        const v = vinyl({
-          path,
+        processedFiles.push({
+          path: outputFile.path,
           contents,
         });
-
-        // Add the virtual file object to the merge stream
-        this.stream.push(v);
       }
 
-      // Return a done message, or additional stats if requested
-      if (this.#options?.stats) {
-        return `Stylesheets: ${JSON.stringify(result.metafile)}`;
-      } else {
-        return `Stylesheets built`;
-      }
+      return processedFiles;
     } catch (err) {
-      console.error("Error in StyleSheetsPipeline.js", err);
+      // eslint-disable-next-line no-console
+      console.error("Error in StylesheetsPipeline.js", err);
       throw err;
     }
   }
 
   /**
-   * @description: Wrapper around the autoPrefix function from autoprefixer depedency. Also requires postcss dependency
+   * @description: Wrapper around the autoPrefix function from autoprefixer dependency. Also requires postcss dependency
    * @param {string} css: The css to be autoprefixed
-   * @return {string}     The autoprefixed css
+   * @return {Promise<string>}: The autoprefixed css
    * @memberof StylesheetsPipeline
    */
-  #autoPrefix(css) {
+  async #autoPrefix(css) {
     // Only require if we choose to enable auto prefixing
-    return postcss([autoprefixer])
-      .process(css)
-      .then((result) => result.css);
+    const result = await postcss([autoprefixer]).process(css, { from: undefined });
+    return result.css;
   }
 }
