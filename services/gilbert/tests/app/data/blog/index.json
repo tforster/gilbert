@@ -1,0 +1,31 @@
+{
+  "uri": "/blog/index.html",
+  "webProducerKey": "home",
+  "title": "Stop The Party - Blog",
+  "description": "Latest insights and strategies for winning at life's game.",
+  "sections": [
+    {
+      "type": "hero",
+      "title": "Life Strategy Blog",
+      "subtitle": "Deep dives into the tactics and strategies that help you win at life."
+    },
+    {
+      "type": "blog-posts",
+      "title": "Recent Posts",
+      "items": [
+        {
+          "title": "The Power of Strategic Patience",
+          "excerpt": "Sometimes the best move is to wait for the right opportunity.",
+          "link": "/blog/strategic-patience.html",
+          "date": "2025-01-20"
+        },
+        {
+          "title": "Building Your Life Portfolio",
+          "excerpt": "Diversifying your skills and relationships for long-term success.",
+          "link": "/blog/life-portfolio.html",
+          "date": "2025-01-15"
+        }
+      ]
+    }
+  ]
+}

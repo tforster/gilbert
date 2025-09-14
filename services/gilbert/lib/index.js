@@ -177,24 +177,9 @@ class Gilbert {
     } finally {
       this.#activePipelines.delete(pipelineId);
 
-      // If this was the last pipeline, close the merge stream
-      if (this.#activePipelines.size === 0) {
-        if (this.#mergeController) {
-          try {
-            this.#mergeController.close();
-            if (this.#options.debug) {
-              // eslint-disable-next-line no-console
-              console.log(`MergeStream ended: ${this.resources} resources, ${this.size} bytes`);
-            }
-          } catch {
-            // Controller might already be closed, ignore the error
-            if (this.#options.debug) {
-              // eslint-disable-next-line no-console
-              console.log("MergeStream already closed");
-            }
-          }
-        }
-      }
+      // Note: Stream closing is now handled centrally in the compile() method
+      // This prevents race conditions where fast pipelines close the stream
+      // before slower pipelines can complete
     }
   }
 
@@ -268,14 +253,40 @@ class Gilbert {
     }
 
     // Start processing all pipelines concurrently
-    // The individual pipelines will close the merge stream when they're all done
+    // Wait for all pipelines to complete before closing the stream
     if (pipelinePromises.length > 0) {
-      // Don't await here - let pipelines run concurrently
-      // The merge stream will close automatically when all pipelines complete
-      Promise.all(pipelinePromises).catch((error) => {
+      try {
+        await Promise.all(pipelinePromises);
+
+        // All pipelines completed successfully, close the merge stream
+        if (this.#mergeController) {
+          try {
+            this.#mergeController.close();
+            if (this.#options.debug) {
+              // eslint-disable-next-line no-console
+              console.log(`MergeStream ended: ${this.resources} resources, ${this.size} bytes`);
+            }
+          } catch {
+            // Controller might already be closed, ignore the error
+            if (this.#options.debug) {
+              // eslint-disable-next-line no-console
+              console.log("MergeStream already closed");
+            }
+          }
+        }
+      } catch (error) {
+        // Close the stream on error too
+        if (this.#mergeController) {
+          try {
+            this.#mergeController.close();
+          } catch {
+            // Ignore close errors
+          }
+        }
         // eslint-disable-next-line no-console
         console.error("Pipeline processing failed:", error);
-      });
+        throw error;
+      }
     } else {
       // No pipelines to process, close immediately
       if (this.#mergeController) {

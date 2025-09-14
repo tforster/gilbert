@@ -8,7 +8,7 @@ import Gilbert from "../lib/index.js";
 import GilbertFS from "@tforster/gilbert-fs";
 
 // Test paths
-const TEST_INPUT_DIR = resolve("./tests/input");
+const TEST_APP_DIR = resolve("./tests/app");
 const TEST_OUTPUT_DIR = resolve("./tests/output");
 
 /**

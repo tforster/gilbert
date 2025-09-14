@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}} - About</title>
+</head>
+<body>
+    <nav>
+        <a href="/">Home</a>
+        <a href="/about">About</a>
+    </nav>
+    <main>
+        <h1>{{title}}</h1>
+        <section class="bio">
+            <h2>About {{name}}</h2>
+            <p>{{bio}}</p>
+        </section>
+        {{#if skills}}
+        <section class="skills">
+            <h2>Skills</h2>
+            <ul>
+                {{#each skills}}
+                <li>{{this}}</li>
+                {{/each}}
+            </ul>
+        </section>
+        {{/if}}
+    </main>
+</body>
+</html>

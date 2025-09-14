@@ -1,0 +1,13 @@
+{
+  "uri": "/about.html",
+  "webProducerKey": "about",
+  "title": "About Us",
+  "name": "Gilbert Team",
+  "bio": "We are passionate developers creating modern tooling for the web.",
+  "skills": [
+    "Web API Streams",
+    "Static Site Generation",
+    "JavaScript",
+    "Performance"
+  ]
+}

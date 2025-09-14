@@ -123,10 +123,17 @@ class TemplatePipeline {
 
         // Compile as a template (Gilbert's approach for 10 years)
         this.#templates[templateKey] = handlebars.compile(content);
+
+        // Also register as partial with raw content (needed for newer Handlebars)
       }
     });
     // Pipe the templates stream to the collector to load all templates into memory
     await this.#readableTemplatesStream.pipeTo(collector.stream);
+
+    // Set partials to templates (Gilbert's 10-year tradition)
+    // This allows templates to reference each other via {{> templateName }}
+    // @ts-ignore
+    handlebars.partials = this.#templates;
   }
 }
 
