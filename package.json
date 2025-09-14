@@ -44,7 +44,8 @@
     "build:gilbert-file": "npm run build -w services/gilbert-file",
     "docs": "jsdoc -c jsdoc.config.json",
     "docs:clean": "rm -rf docs/api",
-    "docs:serve": "npx http-server docs/api -p 8080"
+    "docs:serve": "npx http-server docs/api -p 8080",
+    "test": "npm run test --workspaces --if-present"
   },
   "type": "module",
   "version": "1.0.0-beta.5",

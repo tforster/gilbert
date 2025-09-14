@@ -51,16 +51,24 @@ class TemplatePipeline {
         if (!file.contents) {
           return;
         }
-        const uri = JSON.parse(new TextDecoder().decode(file.contents));
+        const uriContent = await file.toString();
+        console.log(`DEBUG: Processing URI file: ${file.path}`);
+        console.log(`DEBUG: URI content: ${uriContent}`);
+        const uri = JSON.parse(uriContent);
+        console.log(`DEBUG: Parsed URI:`, uri);
         const path = uri.uri;
         let vinylFile = {};
         if (uri.webProducerKey && uri.webProducerKey !== "redirect") {
-          const template = templates[uri.webProducerKey + ".hbs"];
+          const templateKey = uri.webProducerKey + ".hbs";
+          console.log(`DEBUG: Looking for template: ${templateKey}`);
+          console.log(`DEBUG: Available templates:`, Object.keys(templates));
+          const template = templates[templateKey];
           if (!template) {
             log(`Template not found for webProducerKey: ${uri.webProducerKey}`);
             return;
           }
           const generatedContents = template({ ...uri });
+          console.log(`DEBUG: Generated content preview:`, generatedContents.substring(0, 100));
           vinylFile = vinyl({
             path,
             contents: Buffer.from(generatedContents),
@@ -103,25 +111,18 @@ class TemplatePipeline {
    * @memberof TemplatePipeline
    */
   async #loadTemplates() {
-    console.log("DEBUG: loadTemplates starting");
-
     // Create a collector function for processing Web API streams
-    const collector = WebStreamUtils.createFileCollector((file) => {
-      // Strip the parent folder (templates/, theme/, etc.) from file.relative
-      // to give developers control over folder naming while maintaining consistent lookup
+    const collector = WebStreamUtils.createFileCollector(async (file) => {
+      // Use file.relative directly as the template key since GilbertFS base path handling
+      // ensures the relative path is already correctly calculated from the base
       if (!file.isDirectory()) {
-        let templateKey = file.relative;
+        const templateKey = file.relative;
 
-        // Remove the first path segment (parent folder) to get the actual template key
-        const pathParts = templateKey.split("/");
-        if (pathParts.length > 1) {
-          // Remove first segment: "templates/homepage.hbs" → "homepage.hbs"
-          // Preserve subdirectories: "templates/components/head.hbs" → "components/head.hbs"
-          templateKey = pathParts.slice(1).join("/");
-        }
+        // Get the content of the template
+        const content = await file.toString();
 
-        // Compile the theme file into the handlebars.templates hash
-        this.#templates[templateKey] = handlebars.compile(file.contents.toString());
+        // Compile as a template (Gilbert's approach for 10 years)
+        this.#templates[templateKey] = handlebars.compile(content);
       }
     });
     // Pipe the templates stream to the collector to load all templates into memory

@@ -4,8 +4,8 @@ import mime from "mime";
 // Project dependencies
 import TemplatePipeline from "./TemplatePipeline.js";
 import StaticFilesPipeline from "./StaticFilesPipeline.js";
-// import ScriptsPipeline from "./ScriptsPipeline.js"; // TODO: Re-enable after Web API streams conversion
-// import StylesheetsPipeline from "./StylesheetsPipeline.js"; // TODO: Re-enable after Web API streams conversion
+import ScriptsPipeline from "./ScriptsPipeline.js";
+import StylesheetsPipeline from "./StylesheetsPipeline.js"; // TODO: Re-enable after Web API streams conversion
 
 // Crude global exception handler
 process.on("uncaughtException", (err) => {
@@ -107,11 +107,20 @@ class Gilbert {
       // If no more active pipelines, close the merge stream
       if (this.#activePipelines.size === 0) {
         if (this.#mergeController) {
-          this.#mergeController.close();
+          // Check if controller is still open before closing
+          try {
+            this.#mergeController.close();
 
-          if (this.#options.debug) {
-            // eslint-disable-next-line no-console
-            console.log(`MergeStream ended: ${this.resources} resources, ${this.size} bytes`);
+            if (this.#options.debug) {
+              // eslint-disable-next-line no-console
+              console.log(`MergeStream ended: ${this.resources} resources, ${this.size} bytes`);
+            }
+          } catch {
+            // Controller might already be closed, ignore the error
+            if (this.#options.debug) {
+              // eslint-disable-next-line no-console
+              console.log("MergeStream already closed");
+            }
           }
         }
       }
@@ -171,10 +180,18 @@ class Gilbert {
       // If this was the last pipeline, close the merge stream
       if (this.#activePipelines.size === 0) {
         if (this.#mergeController) {
-          this.#mergeController.close();
-          if (this.#options.debug) {
-            // eslint-disable-next-line no-console
-            console.log(`MergeStream ended: ${this.resources} resources, ${this.size} bytes`);
+          try {
+            this.#mergeController.close();
+            if (this.#options.debug) {
+              // eslint-disable-next-line no-console
+              console.log(`MergeStream ended: ${this.resources} resources, ${this.size} bytes`);
+            }
+          } catch {
+            // Controller might already be closed, ignore the error
+            if (this.#options.debug) {
+              // eslint-disable-next-line no-console
+              console.log("MergeStream already closed");
+            }
           }
         }
       }
@@ -189,10 +206,14 @@ class Gilbert {
   async compile(params) {
     const pipelinePromises = [];
 
+    if (!params) {
+      throw new Error("No parameters provided to compile method");
+    }
+
     // For compiling data and templates, both streams must be present.
-    if (params?.uris?.data?.stream && params?.uris?.theme?.stream) {
+    if (params.uris && params.templates) {
       // Create a new instance of the TemplatePipeline
-      const templatePipeline = new TemplatePipeline(this.#options, params.uris.data.stream, params.uris.theme.stream);
+      const templatePipeline = new TemplatePipeline(this.#options, params.uris, params.templates);
 
       // Start building files into the stream
       await templatePipeline.build();
@@ -207,51 +228,48 @@ class Gilbert {
     }
 
     // Static files processing
-    if (params?.files?.stream) {
-      const staticFilesPipeline = new StaticFilesPipeline(this.#options);
+    if (params.staticFiles) {
+      const staticFilesPipeline = new StaticFilesPipeline();
 
       // Connect static files stream through the pipeline to our merge coordinator
-      const staticReader = params.files.stream.pipeThrough(staticFilesPipeline.transformStream);
-      this.addStream(staticReader);
-    }
-
-    // Scripts processing - temporarily disabled during Web API streams conversion
-    /*
-    if (params?.scripts?.entryPoints) {
-      const scriptsPipeline = new ScriptsPipeline(this.#options, params.scripts.entryPoints);
-      
-      // Building is asynchronous because esbuild has to read from the filesystem
-      const results = await scriptsPipeline.build();
-      
-      // TODO: Convert ScriptsPipeline to Web API streams
-      // For now, assume it will return a Web API ReadableStream
-      pipelinePromises.push(this.#processPipeline(scriptsPipeline.stream, "Scripts"));
+      const staticReader = params.staticFiles.pipeThrough(staticFilesPipeline.transformStream);
+      pipelinePromises.push(this.#processPipeline(staticReader, "StaticFiles"));
 
       if (this.#options.debug) {
         // eslint-disable-next-line no-console
-        console.log("Scripts pipeline started", results);
+        console.log("Static files pipeline started");
       }
     }
-    */
 
-    // Stylesheets processing - temporarily disabled during Web API streams conversion
-    /*
-    if (params?.stylesheets?.entryPoints) {
-      const stylesheetsPipeline = new StylesheetsPipeline(this.#options, params.stylesheets.entryPoints);
+    // Scripts (JavaScript bundling and optimization)
+    if (params.scripts) {
+      const scriptsPipeline = new ScriptsPipeline(params.scripts, params.scriptsOptions);
+      const scriptsStream = await scriptsPipeline.getReadableStream();
 
-      // Building is asynchronous because esbuild has to read from the filesystem
-      const results = await stylesheetsPipeline.build();
-
-      // TODO: Convert StylesheetsPipeline to Web API streams
-      // For now, assume it will return a Web API ReadableStream
-      pipelinePromises.push(this.#processPipeline(stylesheetsPipeline.stream, "Stylesheets"));
+      pipelinePromises.push(this.#processPipeline(scriptsStream, "Scripts"));
 
       if (this.#options.debug) {
         // eslint-disable-next-line no-console
-        console.log("Stylesheets pipeline started", results);
+        console.log("Scripts pipeline started");
       }
     }
-    */
+
+    // // CSS
+    // if (params.stylesheets) {
+    //   const stylesheetsPipeline = new StylesheetsPipeline(this.#options, params.stylesheets);
+
+    //   // Building is asynchronous because esbuild has to read from the filesystem
+    //   const results = await stylesheetsPipeline.build();
+
+    //   // TODO: Convert StylesheetsPipeline to Web API streams
+    //   // For now, assume it will return a Web API ReadableStream
+    //   pipelinePromises.push(this.#processPipeline(stylesheetsPipeline.stream, "Stylesheets"));
+
+    //   if (this.#options.debug) {
+    //     // eslint-disable-next-line no-console
+    //     console.log("Stylesheets pipeline started", results);
+    //   }
+    // }
 
     // Start processing all pipelines concurrently
     // The individual pipelines will close the merge stream when they're all done
@@ -265,7 +283,11 @@ class Gilbert {
     } else {
       // No pipelines to process, close immediately
       if (this.#mergeController) {
-        this.#mergeController.close();
+        try {
+          this.#mergeController.close();
+        } catch {
+          // Controller might already be closed, ignore the error
+        }
       }
     }
   }

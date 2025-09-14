@@ -11,10 +11,10 @@ export default class WebStreamUtils {
     const chunks = [];
     return {
       stream: new WritableStream({
-        write(chunk) {
+        async write(chunk) {
           chunks.push(chunk);
           if (processor) {
-            processor(chunk);
+            await processor(chunk);
           }
         },
       }),

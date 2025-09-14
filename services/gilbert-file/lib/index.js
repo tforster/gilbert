@@ -515,6 +515,98 @@ export default class GilbertFile {
   }
 
   /**
+   * @description Converts the file contents to a string.
+   * If contents are a Uint8Array, decodes using UTF-8.
+   * If contents are a ReadableStream, reads the entire stream and decodes as UTF-8.
+   * @returns {Promise<string>} A promise that resolves to the file contents as a string
+   * @throws {Error} When contents are null or cannot be converted to string
+   * @memberof GilbertFile
+   */
+  async toString() {
+    if (this.isNull()) {
+      throw new Error("Cannot convert null contents to string");
+    }
+
+    if (this.isBuffer()) {
+      return new TextDecoder().decode(/** @type {Uint8Array} */ (this.contents));
+    }
+
+    if (this.isStream()) {
+      const reader = /** @type {ReadableStream} */ (this.contents).getReader();
+      const chunks = [];
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+        }
+      } finally {
+        reader.releaseLock();
+      }
+
+      // Concatenate all chunks into a single Uint8Array
+      const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+      const combined = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const chunk of chunks) {
+        combined.set(chunk, offset);
+        offset += chunk.length;
+      }
+
+      return new TextDecoder().decode(combined);
+    }
+
+    throw new Error(`Cannot convert contents of type '${this.#contentKind}' to string`);
+  }
+
+  /**
+   * @description Converts the file contents to a Uint8Array buffer.
+   * If contents are already a Uint8Array, returns them directly.
+   * If contents are a ReadableStream, reads the entire stream into a buffer.
+   * @returns {Promise<Uint8Array>} A promise that resolves to the file contents as a Uint8Array
+   * @throws {Error} When contents are null or cannot be converted to buffer
+   * @memberof GilbertFile
+   */
+  async toBuffer() {
+    if (this.isNull()) {
+      throw new Error("Cannot convert null contents to buffer");
+    }
+
+    if (this.isBuffer()) {
+      return /** @type {Uint8Array} */ (this.contents);
+    }
+
+    if (this.isStream()) {
+      const reader = /** @type {ReadableStream} */ (this.contents).getReader();
+      const chunks = [];
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+        }
+      } finally {
+        reader.releaseLock();
+      }
+
+      // Concatenate all chunks into a single Uint8Array
+      const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+      const combined = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const chunk of chunks) {
+        combined.set(chunk, offset);
+        offset += chunk.length;
+      }
+
+      return combined;
+    }
+
+    throw new Error(`Cannot convert contents of type '${this.#contentKind}' to buffer`);
+  }
+
+  /**
    * @description Creates a copy of this GilbertFile with optional property overrides.
    * This is useful for transforms that need to modify certain properties while preserving others.
    * @param {GilbertFileOptions} [overrides={}] - Properties to override in the cloned file
