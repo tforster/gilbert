@@ -4,19 +4,17 @@
     "url": "  https://github.com/tforster/webproducer/issues"
   },
   "dependencies": {
+    "@tforster/gilbert-file": "^0.1.0",
+    "@tforster/gilbert-logger": "^0.1.0",
     "autoprefixer": "^10.4.20",
     "esbuild": "^0.25.0",
-    "@tforster/gilbert-file": "^0.1.0",
     "handlebars": "^4.7.8",
-    "html-minifier": "^4.0.0",
-    "mime": "^4.0.6",
-    "minimatch": "^10.0.1",
     "postcss": "^8.4.49"
   },
+  "description": "",
   "devDependencies": {
     "@tforster/gilbert-fs": "^0.1.0"
   },
-  "description": "",
   "exports": {
     ".": "./lib/index.js"
   },

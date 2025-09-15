@@ -55,6 +55,7 @@
     "services/gilbert",
     "services/gilbert-fs",
     "services/gilbert-github",
-    "services/gilbert-glob"
+    "services/gilbert-glob",
+    "services/gilbert-logger"
   ]
 }

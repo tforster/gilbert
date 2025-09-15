@@ -1,0 +1,35 @@
+{
+  "name": "@tforster/gilbert-logger",
+  "version": "0.1.0",
+  "description": "Lightweight async logger for Gilbert static site generator",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "keywords": [
+    "gilbert",
+    "logger",
+    "async",
+    "performance",
+    "web-api-streams"
+  ],
+  "author": "Troy Forster <troy@tforster.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tforster/webproducer.git",
+    "directory": "services/gilbert-logger"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "lib/",
+    "README.md",
+    "CHANGELOG.md"
+  ]
+}

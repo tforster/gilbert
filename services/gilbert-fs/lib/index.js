@@ -5,6 +5,10 @@ import path from "node:path";
 // Third-party dependencies
 import { Glob } from "@tforster/gilbert-glob";
 import GilbertFile from "@tforster/gilbert-file";
+import { createLogger } from "@tforster/gilbert-logger";
+
+// Create async logger with environment-based debug control
+const logger = createLogger(process.env.GILBERT_DEBUG === "true");
 
 /**
  * @typedef {Object} SrcOptions
@@ -37,8 +41,7 @@ class GilbertFS {
         start() {
           // Log initialization for debugging
           if (process.env.NODE_ENV !== "production") {
-            // eslint-disable-next-line no-console
-            console.log(`GilbertFS.dest: Initialized with base path: ${basePath}`);
+            logger.debug(`GilbertFS.dest: Initialized with base path: ${basePath}`);
           }
         },
 
@@ -63,8 +66,7 @@ class GilbertFS {
          */
         close() {
           if (process.env.NODE_ENV !== "production") {
-            // eslint-disable-next-line no-console
-            console.log("GilbertFS.dest: Stream closed successfully");
+            logger.debug("GilbertFS.dest: Stream closed successfully");
           }
         },
 
@@ -149,8 +151,7 @@ class GilbertFS {
 
     // Log successful write in debug mode
     if (process.env.NODE_ENV !== "production") {
-      // eslint-disable-next-line no-console
-      console.log(`GilbertFS.dest: Wrote ${outputPath} (${contents.length} bytes)`);
+      logger.debug(`GilbertFS.dest: Wrote ${outputPath} (${contents.length} bytes)`);
     }
   }
 

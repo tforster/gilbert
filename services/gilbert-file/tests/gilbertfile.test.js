@@ -167,12 +167,12 @@ describe("GilbertFile", () => {
       }, /Content type must be a string/);
     });
 
-    it("should preserve contentType for unknown extensions", () => {
+    it("should switch the contentType for unknown extensions", () => {
       const file = new GilbertFile({ path: "/test.json" });
       assert.strictEqual(file.contentType, "application/json");
 
       file.path = "/test.unknownext";
-      assert.strictEqual(file.contentType, "application/json"); // preserved
+      assert.strictEqual(file.contentType, "application/octet-stream");
     });
   });
 

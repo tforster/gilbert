@@ -1,11 +1,15 @@
 // Third party dependencies
-import mime from "mime";
+// import mime from "mime";
 
 // Project dependencies
 import TemplatePipeline from "./TemplatePipeline.js";
 import StaticFilesPipeline from "./StaticFilesPipeline.js";
 import ScriptsPipeline from "./ScriptsPipeline.js";
 import StylesheetsPipeline from "./StylesheetsPipeline.js";
+import { createLogger } from "@tforster/gilbert-logger";
+
+// Create async logger with environment-based debug control
+const logger = createLogger(process.env.GILBERT_DEBUG === "true");
 
 // Crude global exception handler
 process.on("uncaughtException", (err) => {
@@ -60,8 +64,7 @@ class Gilbert {
 
       cancel() {
         if (self.#options.debug) {
-          // eslint-disable-next-line no-console
-          console.log("MergeStream cancelled");
+          logger.debug("MergeStream cancelled");
         }
       },
     });
@@ -112,14 +115,12 @@ class Gilbert {
             this.#mergeController.close();
 
             if (this.#options.debug) {
-              // eslint-disable-next-line no-console
-              console.log(`MergeStream ended: ${this.resources} resources, ${this.size} bytes`);
+              logger.debug(`MergeStream ended: ${this.resources} resources, ${this.size} bytes`);
             }
           } catch {
             // Controller might already be closed, ignore the error
             if (this.#options.debug) {
-              // eslint-disable-next-line no-console
-              console.log("MergeStream already closed");
+              logger.debug("MergeStream already closed");
             }
           }
         }
@@ -136,10 +137,10 @@ class Gilbert {
       this.size += file.contents.length;
       this.resources++;
 
-      // Set content type if missing
-      if (!file.contentType) {
-        file.contentType = mime.getType(file.path);
-      }
+      // Set content type if missing - deprecated? Should be automatic in gilbert-file now
+      // if (!file.contentType) {
+      //   file.contentType = file.getMimeType(file.path);
+      // }
     }
 
     // Add to output stream
@@ -167,8 +168,7 @@ class Gilbert {
       }
 
       if (this.#options.debug) {
-        // eslint-disable-next-line no-console
-        console.log(`${pipelineName} completed`);
+        logger.debug(`${pipelineName} completed`);
       }
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -207,8 +207,7 @@ class Gilbert {
       pipelinePromises.push(this.#processPipeline(templatePipeline.stream, "Templates"));
 
       if (this.#options.debug) {
-        // eslint-disable-next-line no-console
-        console.log("Templates pipeline started");
+        logger.debug("Templates pipeline started");
       }
     }
 
@@ -221,8 +220,7 @@ class Gilbert {
       pipelinePromises.push(this.#processPipeline(staticReader, "StaticFiles"));
 
       if (this.#options.debug) {
-        // eslint-disable-next-line no-console
-        console.log("Static files pipeline started");
+        logger.debug("Static files pipeline started");
       }
     }
 
@@ -234,8 +232,7 @@ class Gilbert {
       pipelinePromises.push(this.#processPipeline(scriptsStream, "Scripts"));
 
       if (this.#options.debug) {
-        // eslint-disable-next-line no-console
-        console.log("Scripts pipeline started");
+        logger.debug("Scripts pipeline started");
       }
     }
 
@@ -247,8 +244,7 @@ class Gilbert {
       pipelinePromises.push(this.#processPipeline(stylesheetsStream, "Stylesheets"));
 
       if (this.#options.debug) {
-        // eslint-disable-next-line no-console
-        console.log("Stylesheets pipeline started");
+        logger.debug("Stylesheets pipeline started");
       }
     }
 
@@ -263,14 +259,12 @@ class Gilbert {
           try {
             this.#mergeController.close();
             if (this.#options.debug) {
-              // eslint-disable-next-line no-console
-              console.log(`MergeStream ended: ${this.resources} resources, ${this.size} bytes`);
+              logger.debug(`MergeStream ended: ${this.resources} resources, ${this.size} bytes`);
             }
           } catch {
             // Controller might already be closed, ignore the error
             if (this.#options.debug) {
-              // eslint-disable-next-line no-console
-              console.log("MergeStream already closed");
+              logger.debug("MergeStream already closed");
             }
           }
         }

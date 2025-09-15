@@ -2,7 +2,8 @@
   "author": "Troy Forster <troy.forster@gmail.com> (http://www.tforster.com/)",
   "dependencies": {
     "@tforster/gilbert-file": "^0.1.0",
-    "@tforster/gilbert-glob": "^0.1.0"
+    "@tforster/gilbert-glob": "^0.1.0",
+    "@tforster/gilbert-logger": "^0.1.0"
   },
   "description": "Filesystem adapter for Gilbert using Web API streams",
   "exports": {

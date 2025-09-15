@@ -46,6 +46,7 @@ _Comprehensive technical documentation for Gilbert and all gilbert-\* packages_
 - [Migration Guides](#migration-guides)
 - [Development Workflows](#development-workflows)
   - [Testing Strategy](#testing-strategy)
+  - [Mono-repo Development](#mono-repo-development)
   - [Debugging Techniques](#debugging-techniques)
   - [Performance Optimization](#performance-optimization)
 - [Deployment Guide](#deployment-guide)
@@ -1483,6 +1484,136 @@ describe("Complete Site Build", () => {
 });
 ```
 
+**Mono-repo Testing Structure:**
+
+Gilbert uses a workspace-based testing approach with tests distributed across individual packages and centralized integration tests.
+
+**Test Execution Options:**
+
+```bash
+# Run all tests across all workspaces (comprehensive but slower)
+npm test
+
+# Run specific workspace tests from root (preferred - no directory changes)
+npm -w services/gilbert test              # Core engine tests
+npm -w services/gilbert-file test         # Virtual file tests
+npm -w services/gilbert-fs test           # Filesystem tests
+npm -w services/gilbert-logger test       # Async logger tests
+npm -w services/gilbert-cli test          # CLI tests
+
+# Alternative: Run specific workspace tests (requires directory changes)
+cd services/gilbert && npm test              # Core engine tests
+cd services/gilbert-file && npm test         # Virtual file tests
+cd services/gilbert-fs && npm test           # Filesystem tests
+cd services/gilbert-logger && npm test       # Async logger tests
+cd services/gilbert-cli && npm test          # CLI tests
+
+# Run specific test types in gilbert workspace from root
+npm -w services/gilbert run test:all         # All gilbert tests
+npm -w services/gilbert exec -- node --test tests/ultimate.test.js    # Performance benchmark
+npm -w services/gilbert exec -- node --test tests/templates.test.js   # TemplatePipeline tests
+```
+
+**Test Locations by Workspace:**
+
+- **Root (`/tests/`)**: Cross-workspace integration tests and publish scenarios
+- **`services/gilbert/tests/`**: Core engine tests including pipelines and performance
+  - `integration.test.js`: End-to-end pipeline validation
+  - `ultimate.test.js`: Performance benchmarks (target: 200+ pages/sec)
+  - `templates.test.js`: TemplatePipeline functionality
+  - `scripts.test.js`, `stylesheets.test.js`, `static-files.test.js`: Pipeline-specific tests
+- **`services/gilbert-file/tests/`**: Virtual file object unit tests
+- **`services/gilbert-fs/tests/`**: Filesystem integration tests
+- **`services/gilbert-logger/tests/`**: Async logging functionality tests
+- **`test-harness/`**: Real-world integration scenarios and mock testing
+
+**Performance Testing:**
+
+The `ultimate.test.js` serves as both a functional test and performance benchmark:
+
+```bash
+# Run performance benchmark
+cd services/gilbert && node --test tests/ultimate.test.js
+
+# Expected output: Processing time < 185ms for 29 files (target: 200+ pages/sec)
+```
+
+**Test Development Guidelines:**
+
+- **Workspace Isolation**: Each workspace should have comprehensive unit tests for its public APIs
+- **Integration Coverage**: Root integration tests validate cross-workspace interactions
+- **Performance Monitoring**: Ultimate test tracks performance regressions
+- **Mock Testing**: Use `test-harness/` for complex scenario validation without external dependencies
+- **CI Compatibility**: All tests must pass in headless environments without filesystem dependencies
+
+**Common Test Patterns:**
+
+```javascript
+// Gilbert pipeline testing pattern
+import { Gilbert } from "@tforster/gilbert";
+import { createMockDataStream, createMockTemplateStream } from "./fixtures/streams.js";
+
+describe("Pipeline Integration", () => {
+  it("should process data through pipeline", async () => {
+    const gilbert = new Gilbert(config);
+    const result = await gilbert.build(dataStream, templateStream);
+    // Validate output...
+  });
+});
+```
+
+### Mono-repo Development
+
+Best practices for developing Gilbert packages within the mono-repo structure, including versioning and dependency management.
+
+**Versioning Conventions:**
+
+- **New Projects**: All new Gilbert packages start with semantic version `0.1.0`
+- **Development Phase**: Increment patch version (0.1.x) for development iterations
+- **Pre-release Phase**: Use pre-release tags for testing (0.2.0-alpha.1, 0.2.0-beta.1)
+- **First Publication**: Major version bumps from 0 to 1 only on first npm publish (1.0.0)
+
+**Dependency Management with npm link:**
+
+Gilbert uses npm link for local package dependencies during development to ensure consistency and avoid path-based imports that need modification before publishing.
+
+```bash
+# 1. Create global link for the new package
+cd services/gilbert-newpackage
+npm link
+
+# 2. Link the package in consuming projects
+cd ../gilbert
+npm link @tforster/gilbert-newpackage
+
+# 3. Update package.json with proper dependency
+# Add to dependencies section:
+"@tforster/gilbert-newpackage": "^0.1.0"
+
+# 4. Use standard npm import syntax
+import { someFunction } from "@tforster/gilbert-newpackage";
+```
+
+**Why npm link over relative paths:**
+
+- **Consistency**: Same import syntax in development and production
+- **Publishing Ready**: No import path changes required before npm publish
+- **IDE Support**: Better TypeScript/VSCode IntelliSense with proper package names
+- **Testing**: Validates package exports and dependencies correctly
+
+**Workspace Structure:**
+
+```text
+Gilbert/
+├── package.json              # Root workspace configuration
+├── services/
+│   ├── gilbert/              # Core engine (0.x.x)
+│   ├── gilbert-file/         # Virtual file objects (0.x.x)
+│   ├── gilbert-fs/           # Filesystem integration (0.x.x)
+│   ├── gilbert-logger/       # Async logging (0.x.x)
+│   └── gilbert-newpackage/   # New package (starts at 0.1.0)
+```
+
 ### Debugging Techniques
 
 Effective debugging strategies for Gilbert pipelines and data flows.
@@ -2718,6 +2849,7 @@ gilbert/
 - Prefer `const` over `let`, avoid `var`
 - Use async/await instead of Promise chains
 - Include JSDoc comments for public APIs
+- **Use English spellings** (e.g., `colour`, `optimise`, `initialise`) rather than American spellings in both code and comments
 
 **Example:**
 
@@ -2754,7 +2886,7 @@ export function createPipeline(config) {
 
 **Pull Request Process:**
 
-1. Update documentation for new features
+1. Update documentation for new features (using English spellings: colour, optimise, realise, etc.)
 2. Add tests for new functionality
 3. Ensure all tests pass
 4. Update CHANGELOG.md

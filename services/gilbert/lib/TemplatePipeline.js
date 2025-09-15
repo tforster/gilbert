@@ -1,8 +1,13 @@
 // Third party dependencies
 import handlebars from "handlebars";
-import { minify as htmlMinify } from "html-minifier";
-import { log, vinyl } from "./Utils.js";
-import mime from "mime";
+// import mime from "mime";
+import GilbertFile from "@tforster/gilbert-file";
+
+// Gilbert HTML minifier
+import SimpleHtmlMinifier from "./SimpleHtmlMinifier.js";
+
+// Gilbert logger for async performance
+import { createLogger } from "@tforster/gilbert-logger";
 
 // Web API Streams utilities
 import WebStreamUtils from "./WebStreamUtils.js";
@@ -17,6 +22,7 @@ class TemplatePipeline {
   /** @type {ReadableStream} */
   #readableTemplatesStream;
   #templates = {};
+  #logger;
 
   /**
    * Creates an instance of TemplatePipeline.
@@ -28,6 +34,8 @@ class TemplatePipeline {
   constructor(options, readableDataStream, readableTemplatesStream) {
     this.#readableDataStream = readableDataStream;
     this.#readableTemplatesStream = readableTemplatesStream;
+    // Enable debug logging in development or when DEBUG env var is set
+    this.#logger = createLogger(process?.env?.DEBUG === "true" || process?.env?.NODE_ENV === "development");
   }
 
   /**
@@ -45,6 +53,7 @@ class TemplatePipeline {
     await this.#loadTemplates();
 
     const templates = this.#templates;
+    const logger = this.#logger;
 
     const transformStream = new TransformStream({
       async transform(file, controller) {
@@ -52,51 +61,62 @@ class TemplatePipeline {
           return;
         }
         const uriContent = await file.toString();
-        console.log(`DEBUG: Processing URI file: ${file.path}`);
-        console.log(`DEBUG: URI content: ${uriContent}`);
+        logger.debug(`Processing URI file: ${file.path}`);
+        logger.debug(`URI content: ${uriContent}`);
         const uri = JSON.parse(uriContent);
-        console.log(`DEBUG: Parsed URI:`, uri);
+        logger.debug(`Parsed URI:`, uri);
         const path = uri.uri;
-        let vinylFile = {};
+
+        // Initialize an empty GilbertFile
+        let gilbertFile = new GilbertFile({});
+
         if (uri.webProducerKey && uri.webProducerKey !== "redirect") {
           const templateKey = uri.webProducerKey + ".hbs";
-          console.log(`DEBUG: Looking for template: ${templateKey}`);
-          console.log(`DEBUG: Available templates:`, Object.keys(templates));
+          logger.debug(`Looking for template: ${templateKey}`);
+          logger.debug(`Available templates:`, Object.keys(templates));
           const template = templates[templateKey];
           if (!template) {
-            log(`Template not found for webProducerKey: ${uri.webProducerKey}`);
+            logger.debug(`Template not found for webProducerKey: ${uri.webProducerKey}`);
             return;
           }
           const generatedContents = template({ ...uri });
-          console.log(`DEBUG: Generated content preview:`, generatedContents.substring(0, 100));
-          vinylFile = vinyl({
+          logger.debug(`Generated content preview:`, generatedContents.substring(0, 100));
+          gilbertFile = new GilbertFile({
             path,
             contents: Buffer.from(generatedContents),
-            contentType: mime.getType(path),
+            // contentType: mime.getType(path),
+            cwd: "/", // Virtual root - matches Utils.vinyl() behavior
           });
-          if (vinylFile.extname === "" || vinylFile.extname === ".html") {
-            vinylFile.contents = Buffer.from(
-              htmlMinify(vinylFile.contents.toString(), {
-                collapseWhitespace: true,
-                removeComments: true,
-                minifyCSS: true,
-                minifyJS: true,
-              })
-            );
-            vinylFile.contentType = "text/html";
+          if (gilbertFile.extname === "" || gilbertFile.extname === ".html") {
+            const htmlString = Buffer.isBuffer(gilbertFile.contents)
+              ? gilbertFile.contents.toString()
+              : gilbertFile.contents.toString();
+
+            const minifiedHtml = SimpleHtmlMinifier.minify(htmlString, {
+              keep_closing_tags: false,
+              keep_html_and_head_opening_tags: false,
+              allow_removing_spaces_between_attributes: true,
+              keep_comments: false,
+              minify_css: true,
+              minify_js: true,
+            });
+
+            gilbertFile.contents = Buffer.from(minifiedHtml);
+            gilbertFile.contentType = "text/html";
           }
         } else if (uri.webProducerKey === "redirect") {
-          vinylFile = vinyl({
+          gilbertFile = new GilbertFile({
             path,
             contents: Buffer.from(uri.targetAddress),
             redirect: 301,
             contentType: "text/html",
+            cwd: "/", // Virtual root - matches Utils.vinyl() behavior
           });
         } else {
-          log(`Unexpected condition: page and webProducerKey not found. ${path}, ${uri}`);
+          logger.debug(`Unexpected condition: page and webProducerKey not found. ${path}, ${uri}`);
           return;
         }
-        controller.enqueue(vinylFile);
+        controller.enqueue(gilbertFile);
       },
     });
 

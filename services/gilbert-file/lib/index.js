@@ -1,5 +1,5 @@
 // Third-party imports
-import mime from "mime";
+import getMimeType from "./mime.js";
 
 // Local imports
 import WebPath from "./WebPath.js";
@@ -100,7 +100,7 @@ export default class GilbertFile {
     this.#isDirectory = normalizedOptions.type === "directory";
 
     // 7. Set contentType last (may depend on path)
-    this.contentType = normalizedOptions.contentType || (this.path ? mime.getType(this.path) : null) || DEFAULT_CONTENT_TYPE;
+    this.contentType = normalizedOptions.contentType || (this.extname ? getMimeType(this.extname) : null) || DEFAULT_CONTENT_TYPE;
   }
 
   /**
@@ -160,11 +160,11 @@ export default class GilbertFile {
     this.#history = [this.#path];
 
     // Recalculate contentType based on new file extension
-    const mimeType = mime.getType(this.#path);
+    const mimeType = getMimeType(this.extname);
     if (mimeType) {
       this.#contentType = mimeType;
     }
-    // Note: If mime.getType returns null, we keep the existing contentType
+    // Note: If getMimeType returns null, we keep the existing contentType
   }
 
   /**
