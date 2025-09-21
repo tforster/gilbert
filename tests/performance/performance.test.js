@@ -21,9 +21,9 @@ const __dirname = path.dirname(__filename);
 // Test configuration
 const testConfig = {
   baseDir: process.cwd(),
-  sourceDir: process.cwd(), // Templates and data are now at root level
-  distDir: path.join(process.cwd(), "dist"), // Fixed: was outputDir, should be distDir
-  dataFile: path.join(process.cwd(), "data.json"),
+  sourceDir: path.join(__dirname, "src"), // Source files are now under src/
+  distDir: path.join(__dirname, "dist"), // Output directory
+  dataFile: path.join(__dirname, "data.json"), // Master data file at performance test root
   runs: 3, // Number of test runs to perform
 };
 
@@ -62,8 +62,8 @@ function validateFiles() {
     path.join(testConfig.sourceDir, "templates", "components", "header.hbs"),
     path.join(testConfig.sourceDir, "templates", "components", "footer.hbs"),
     // Asset files
-    path.join(testConfig.sourceDir, "src", "stylesheets", "main.css"),
-    path.join(testConfig.sourceDir, "src", "scripts", "main.js"),
+    path.join(testConfig.sourceDir, "stylesheets", "main.css"),
+    path.join(testConfig.sourceDir, "scripts", "main.js"),
   ];
 
   const missingFiles = requiredFiles.filter((file) => !fs.existsSync(file));
@@ -138,9 +138,9 @@ async function runSingleTest(runNumber) {
     await gilbert.compile({
       uris: GilbertFS.src("**/*.json", { base: path.resolve(testConfig.sourceDir, "data") }),
       templates: GilbertFS.src("**/*.hbs", { base: path.resolve(testConfig.sourceDir, "templates") }),
-      scripts: [path.resolve(testConfig.sourceDir, "src", "scripts", "main.js")],
-      stylesheets: [path.resolve(testConfig.sourceDir, "src", "stylesheets", "main.css")],
-      staticFiles: GilbertFS.src("files/**/*", { base: path.resolve(testConfig.sourceDir, "src") }),
+      scripts: [path.resolve(testConfig.sourceDir, "scripts", "main.js")],
+      stylesheets: [path.resolve(testConfig.sourceDir, "stylesheets", "main.css")],
+      staticFiles: GilbertFS.src("files/**/*", { base: testConfig.sourceDir }),
     });
 
     // Execute the build using pipeTo (no console.log between performance measurements)
@@ -200,7 +200,7 @@ async function runBigTest() {
     console.log("\n🔧 Creating individual data files...");
 
     // Check if data.json exists, if not run full generation
-    const dataPath = path.join(testConfig.sourceDir, "data.json");
+    const dataPath = testConfig.dataFile;
     if (!fs.existsSync(dataPath)) {
       console.log("  Master data.json not found, generating all test data...");
       const { generateAllTestData } = await import("./generate-test-data.js");

@@ -373,7 +373,7 @@ function generateMasterData() {
   }
 
   // Sort blog posts by date (newest first)
-  data.blogPosts.sort((a, b) => new Date(b.date) - new Date(a.date));
+  data.blogPosts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   // Add recent posts to blog landing page
   data.pages["blog-landing"].recentPosts = data.blogPosts.slice(0, 6).map((post) => ({
@@ -404,7 +404,7 @@ function generateMasterData() {
 function createIndividualDataFiles(data) {
   console.log("📁 Creating individual data files...");
 
-  const dataDir = path.join(__dirname, "data");
+  const dataDir = path.join(__dirname, "src", "data");
 
   // Clear existing data directory
   if (fs.existsSync(dataDir)) {
