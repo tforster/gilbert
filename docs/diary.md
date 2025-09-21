@@ -1021,3 +1021,35 @@ This change eliminates security vulnerabilities where malicious files could reta
 **Streaming Integration**: Validated minifier correctly processes individual GilbertFile objects in stream without requiring streaming chunk processing (appropriate for file-based pipeline architecture)
 
 The custom HTML minifier demonstrates that focused, targeted optimization often outperforms complex external solutions while providing better maintainability and cross-runtime compatibility for Gilbert's core architectural goals.
+
+## 2025-09-21
+
+Completed major test infrastructure overhaul following service reorganization and implemented simplified full integration testing aligned with Gilbert's intended usage patterns:
+
+### Service Test Infrastructure Fixes
+
+- **Path Updates After Reorganization**: Fixed all service tests after user reorganized test structure with new src/ directories and dist/ output patterns
+- **Static Files Test Enhancement**: Updated static-files.test.js to preserve folder structure (src/files → dist/files) with dynamic file counting and proper cleanup isolation
+- **Templates Test Recreation**: Completely rebuilt templates.test.js from scratch after corruption issues, now working with 2 passing tests validating JSON data + HBS template processing with minification
+- **Scripts/Stylesheets Validation**: Confirmed scripts.test.js and stylesheets.test.js working correctly with updated src/ path structure
+
+### Integration Test Simplification
+
+- **Gilbert Real-World Usage**: Created full.test.js following performance test pattern using gilbert.compile() and gilbert.stream.pipeTo() - exactly how Gilbert is intended to be used in production
+- **Eliminated Overcomplexity**: Removed separate pipeline execution approach in favor of Gilbert's unified processing model with all 4 pipelines working together
+- **Performance Alignment**: New integration test mirrors performance.test.js structure, processing all file types (JSON data, HBS templates, JS scripts, CSS stylesheets, static files) in one efficient pipeline
+- **Test Success**: Full integration test completing in 118ms, validating complete website build functionality
+
+### Technical Insights and Debugging
+
+- **Parallel Execution Race Conditions**: Identified that Node.js parallel test execution causes dist folder conflicts when multiple tests clean same directory simultaneously
+- **Import Path Resolution**: Corrected module import paths (../lib/index.js vs ../../lib/index.js) and fixed default vs named export patterns for Gilbert core
+- **GilbertFS Usage**: Properly implemented GilbertFS.src() and GilbertFS.dest() patterns following established templates.test.js approach
+
+### Key Architectural Validation
+
+- **Production Pattern Confirmation**: Validated that Gilbert's intended usage (all pipelines together via gilbert.compile()) is the correct approach for high-performance static site generation
+- **Test Suite Consistency**: All individual pipeline tests working correctly while full integration test validates end-to-end website building capability
+- **Source File Preservation**: Maintained user's explicit directive to preserve committed src files without modification during testing
+
+The service test infrastructure is now robust and properly validates Gilbert's real-world usage patterns while maintaining clean separation between individual pipeline testing and full integration validation.
