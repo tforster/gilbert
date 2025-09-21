@@ -23,7 +23,7 @@ describe("Gilbert Scripts Pipeline", () => {
     await cleanDist();
 
     const gilbert = new Gilbert({ debug: true });
-    const scriptsPath = path.join(__dirname, "app", "scripts");
+    const scriptsPath = path.join(__dirname, "src", "scripts");
     const entryPoints = [path.join(scriptsPath, "main.js")];
 
     await gilbert.compile({
@@ -31,9 +31,9 @@ describe("Gilbert Scripts Pipeline", () => {
     });
 
     // Pipe Gilbert output to filesystem destination
-    await gilbert.stream.pipeTo(GilbertFS.dest(path.join(__dirname, "dist", "test1")));
+    await gilbert.stream.pipeTo(GilbertFS.dest(path.join(__dirname, "dist")));
 
-    const outputDir = path.join(__dirname, "dist", "test1");
+    const outputDir = path.join(__dirname, "dist");
     assert.ok(existsSync(outputDir), "Output directory should exist");
 
     const files = await readdir(outputDir);
@@ -51,7 +51,7 @@ describe("Gilbert Scripts Pipeline", () => {
     await cleanDist();
 
     const gilbert = new Gilbert({ debug: true });
-    const scriptsPath = path.join(__dirname, "app", "scripts");
+    const scriptsPath = path.join(__dirname, "src", "scripts");
     const entryPoints = [path.join(scriptsPath, "main.js")];
 
     // Compile with custom esbuild options - disable minification
@@ -64,9 +64,9 @@ describe("Gilbert Scripts Pipeline", () => {
     });
 
     // Pipe Gilbert output to filesystem destination
-    await gilbert.stream.pipeTo(GilbertFS.dest(path.join(__dirname, "dist", "test2")));
+    await gilbert.stream.pipeTo(GilbertFS.dest(path.join(__dirname, "dist")));
 
-    const outputDir = path.join(__dirname, "dist", "test2");
+    const outputDir = path.join(__dirname, "dist");
     assert.ok(existsSync(outputDir), "Output directory should exist");
 
     const files = await readdir(outputDir);

@@ -23,7 +23,7 @@ describe("Gilbert Stylesheets Pipeline", () => {
     await cleanDist();
 
     const gilbert = new Gilbert({ debug: true });
-    const stylesheetsPath = path.join(__dirname, "app", "stylesheets");
+    const stylesheetsPath = path.join(__dirname, "src", "stylesheets");
     const entryPoints = [path.join(stylesheetsPath, "main.css")];
 
     // Compile through Gilbert
@@ -32,9 +32,9 @@ describe("Gilbert Stylesheets Pipeline", () => {
     });
 
     // Pipe Gilbert output to filesystem destination
-    await gilbert.stream.pipeTo(GilbertFS.dest(path.join(__dirname, "dist", "stylesheets-test1")));
+    await gilbert.stream.pipeTo(GilbertFS.dest(path.join(__dirname, "dist")));
 
-    const outputDir = path.join(__dirname, "dist", "stylesheets-test1");
+    const outputDir = path.join(__dirname, "dist");
     assert.ok(existsSync(outputDir), "Output directory should exist");
 
     const files = await readdir(outputDir);
@@ -55,7 +55,7 @@ describe("Gilbert Stylesheets Pipeline", () => {
     await cleanDist();
 
     const gilbert = new Gilbert({ debug: true });
-    const stylesheetsPath = path.join(__dirname, "app", "stylesheets");
+    const stylesheetsPath = path.join(__dirname, "src", "stylesheets");
     const entryPoints = [path.join(stylesheetsPath, "main.css")];
 
     // Compile with custom esbuild options - disable minification
@@ -68,9 +68,9 @@ describe("Gilbert Stylesheets Pipeline", () => {
     });
 
     // Pipe Gilbert output to filesystem destination
-    await gilbert.stream.pipeTo(GilbertFS.dest(path.join(__dirname, "dist", "stylesheets-test2")));
+    await gilbert.stream.pipeTo(GilbertFS.dest(path.join(__dirname, "dist")));
 
-    const outputDir = path.join(__dirname, "dist", "stylesheets-test2");
+    const outputDir = path.join(__dirname, "dist");
     assert.ok(existsSync(outputDir), "Output directory should exist");
 
     const files = await readdir(outputDir);
