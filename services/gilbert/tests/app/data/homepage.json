@@ -1,8 +1,0 @@
-{
-  "uri": "/index.html",
-  "webProducerKey": "homepage",
-  "title": "Welcome to Our Site",
-  "description": "This is the homepage of our amazing website built with Gilbert.",
-  "content": "<p>Gilbert is a modern static site generator that uses Web API streams.</p>",
-  "generatedAt": "2025-01-23"
-}
