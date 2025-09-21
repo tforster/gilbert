@@ -125,13 +125,6 @@ async function runSingleTest(runNumber) {
       destination: testConfig.distDir,
     };
 
-    const pipelines = [
-      { name: "templates", enabled: true },
-      { name: "static", enabled: true },
-      { name: "scripts", enabled: true },
-      { name: "stylesheets", enabled: true },
-    ];
-
     const gilbert = new Gilbert(config);
 
     // Compile all content (no console.log between performance measurements)
