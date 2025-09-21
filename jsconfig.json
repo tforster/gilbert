@@ -28,7 +28,8 @@
     "test-harness/**/*.js",
     "tests/**/*.js",
     "examples/**/*.js",
-    "*.js"
+    "*.js",
+    "tests/real-world/real-world.test.js"
   ],
   "exclude": ["node_modules", "dist", "coverage", "services/*/tests/**", "services/*/test/**", "**/*.test.js", "**/node_modules/**"]
 }

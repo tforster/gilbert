@@ -9,12 +9,13 @@ Defines agent protocols, behaviors, and context management for the Gilbert (WebP
 ## Diary Update Protocol
 
 - After each development session, append a summary of the day's work to `docs/diary.md` in Markdown format.
-- Each entry must be datestamped (YYYY-MM-DD) and added in chronological ascending order.
+- Each entry must be datestamped (YYYY-MM-DD) and added in **chronological ascending order** (oldest entries first, newest entries last).
 - Summaries should be concise, highlight key accomplishments, and reflect architectural or workflow changes.
 - If a session summary is missing, prompt the user to record it before proceeding with new work.
+- When diary entries are found out of chronological order, reorganize them to maintain proper date sequence.
 - Periodically (at least once per session), read the entire `docs/diary.md` file to maintain a running context of work accomplished, architectural decisions, and project history. Use this context to inform summaries, recommendations, and future work.
-  **Example Entry:**
-  **Example Entry:**
+
+**Example Entry:**
 
 ```markdown
 ## 2025-09-13

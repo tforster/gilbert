@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+{{> components/head.hbs}}
+<body class="about-page">
+  {{> components/header.hbs}}
+  
+  <main class="main-content">
+    <div class="container">
+      <article class="about-content">
+        <header class="page-header">
+          <h1>{{pageTitle}}</h1>
+          <p class="page-subtitle">{{pageSubtitle}}</p>
+        </header>
+        
+        <section class="about-intro">
+          <h2>{{introTitle}}</h2>
+          <div class="intro-content">
+            {{introContent}}
+          </div>
+        </section>
+        
+        <section class="about-mission">
+          <h2>{{missionTitle}}</h2>
+          <div class="mission-content">
+            {{missionContent}}
+          </div>
+        </section>
+        
+        <section class="about-team">
+          <h2>{{teamTitle}}</h2>
+          <div class="team-content">
+            {{teamContent}}
+          </div>
+        </section>
+        
+        <section class="about-values">
+          <h2>{{valuesTitle}}</h2>
+          <div class="values-content">
+            {{valuesContent}}
+          </div>
+        </section>
+      </article>
+    </div>
+  </main>
+  
+  {{> components/footer.hbs}}
+</body>
+</html>

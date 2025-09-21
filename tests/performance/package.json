@@ -1,0 +1,14 @@
+{
+  "name": "big-test-site",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Big test site for Gilbert performance testing",
+  "main": "index.js",
+  "scripts": {
+    "build": "node test-runner.js",
+    "generate-data": "node generate-data.js"
+  },
+  "dependencies": {
+    "handlebars": "^4.7.8"
+  }
+}

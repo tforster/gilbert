@@ -6,6 +6,11 @@ stack
 test
 test-output
 
+# Generated test data
+tests/performance/src/data/
+tests/performance/src/files/
+tests/performance/data.json
+
 # Generated documentation
 
 ### Misc. Tooling ###
