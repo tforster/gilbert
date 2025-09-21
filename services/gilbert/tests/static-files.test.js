@@ -8,9 +8,9 @@ import Gilbert from "../lib/index.js";
 import GilbertFS from "@tforster/gilbert-fs";
 
 // Test paths - preserve folder structure from src to dist
-const TEST_SRC_DIR = resolve("./tests/src");
-const TEST_INPUT_DIR = resolve(TEST_SRC_DIR, "files");
-const TEST_OUTPUT_DIR = resolve("./tests/dist");
+const srcDir = resolve("./tests/src");
+const filesDir = resolve(srcDir, "files");
+const distDir = resolve("./tests/dist");
 
 /**
  * Utility function to get all files recursively
@@ -54,10 +54,10 @@ describe("Gilbert Static Files Pipeline", () => {
 
   test("should process static files through Gilbert pipeline", async () => {
     // Clean output directory
-    await rm(TEST_OUTPUT_DIR, { recursive: true, force: true });
+    await rm(distDir, { recursive: true, force: true });
 
     // Get expected file count from source directory
-    const inputFiles = await getAllFiles(TEST_INPUT_DIR);
+    const inputFiles = await getAllFiles(filesDir);
     const expectedFileCount = inputFiles.length;
 
     // Create Gilbert instance
@@ -67,17 +67,17 @@ describe("Gilbert Static Files Pipeline", () => {
 
     // Configure Gilbert with static files only - preserve folder structure
     const params = {
-      staticFiles: GilbertFS.src("files/**/*", { base: TEST_SRC_DIR }),
+      staticFiles: GilbertFS.src("files/**/*", { base: srcDir }),
     };
 
     // Compile through Gilbert
     await gilbert.compile(params);
 
     // Pipe Gilbert output to filesystem destination
-    await gilbert.stream.pipeTo(GilbertFS.dest(TEST_OUTPUT_DIR));
+    await gilbert.stream.pipeTo(GilbertFS.dest(distDir));
 
     // Verify output files exist
-    const outputFiles = await getAllFiles(TEST_OUTPUT_DIR);
+    const outputFiles = await getAllFiles(distDir);
 
     assert.ok(outputFiles.length > 0, "Should have generated output files");
 
@@ -99,7 +99,7 @@ describe("Gilbert Static Files Pipeline", () => {
     assert.ok(mdFile, "Should have files/docs/readme.md");
 
     // Verify file contents are preserved
-    const svgContent = await readFile(resolve(TEST_OUTPUT_DIR, "files/assets/logo.svg"), "utf8");
+    const svgContent = await readFile(resolve(distDir, "files/assets/logo.svg"), "utf8");
     assert.ok(svgContent.includes('<circle cx="50"'), "SVG content should be preserved");
 
     // Assert that the static files parent folder name is preserved (src/files -> dist/files)
@@ -138,22 +138,22 @@ describe("Gilbert Static Files Pipeline", () => {
 
   test("should preserve file structure and paths", async () => {
     // Clean output directory
-    await rm(TEST_OUTPUT_DIR, { recursive: true, force: true });
+    await rm(distDir, { recursive: true, force: true });
 
     const gilbert = new Gilbert({
       debug: true,
     });
 
     const params = {
-      staticFiles: GilbertFS.src("files/**/*", { base: TEST_SRC_DIR }),
+      staticFiles: GilbertFS.src("files/**/*", { base: srcDir }),
     };
 
     await gilbert.compile(params);
-    await gilbert.stream.pipeTo(GilbertFS.dest(TEST_OUTPUT_DIR));
+    await gilbert.stream.pipeTo(GilbertFS.dest(distDir));
 
     // Get input and output file structures
-    const inputFiles = await getAllFiles(TEST_INPUT_DIR);
-    const outputFiles = await getAllFiles(TEST_OUTPUT_DIR);
+    const inputFiles = await getAllFiles(filesDir);
+    const outputFiles = await getAllFiles(distDir);
 
     // Should have same number of files
     assert.equal(outputFiles.length, inputFiles.length, "Should preserve file count");
@@ -171,25 +171,25 @@ describe("Gilbert Static Files Pipeline", () => {
 
   test("should pass through files without modification", async () => {
     // Clean output directory
-    await rm(TEST_OUTPUT_DIR, { recursive: true, force: true });
+    await rm(distDir, { recursive: true, force: true });
 
     const gilbert = new Gilbert({
       debug: true,
     });
 
     const params = {
-      staticFiles: GilbertFS.src("files/**/*", { base: TEST_SRC_DIR }),
+      staticFiles: GilbertFS.src("files/**/*", { base: srcDir }),
     };
 
     await gilbert.compile(params);
-    await gilbert.stream.pipeTo(GilbertFS.dest(TEST_OUTPUT_DIR));
+    await gilbert.stream.pipeTo(GilbertFS.dest(distDir));
 
     // Compare input and output file contents
-    const inputFiles = await getAllFiles(TEST_INPUT_DIR);
+    const inputFiles = await getAllFiles(filesDir);
 
     for (const inputFile of inputFiles) {
       const inputContent = await readFile(inputFile.path);
-      const outputPath = resolve(TEST_OUTPUT_DIR, "files", inputFile.relativePath);
+      const outputPath = resolve(distDir, "files", inputFile.relativePath);
       const outputContent = await readFile(outputPath);
 
       assert.deepEqual(outputContent, inputContent, `File content should be identical for ${inputFile.relativePath}`);

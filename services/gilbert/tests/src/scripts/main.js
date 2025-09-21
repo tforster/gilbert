@@ -8,28 +8,17 @@ class Main {
    * Creates an instance of Main.
    * @memberof Main
    */
-  constructor() {
-  }
+  constructor() {}
 
   /**
    * @description: The method to initialize the main class including UI, event bindings, etc
    * @memberof Main
    */
-  async initialize() {
-  }
-
-  /**
-   * @description The method to setup the UI 
-   * @private
-   * @memberof Main
-   */
-  async #setupUi() {
-
-  } 
+  async initialize() {}
 }
 
 // Wait until the DOM content has loaded before initializing
-listen(window, "DOMContentLoaded", () => {
+window.addEventListener("DOMContentLoaded", () => {
   const main = new Main();
   main.initialize();
 });
