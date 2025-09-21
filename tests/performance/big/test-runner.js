@@ -11,7 +11,7 @@ import { fileURLToPath } from "url";
 import { performance } from "perf_hooks";
 
 // Import Gilbert and adapters
-import Gilbert from "@tforster/gilbert";
+import Gilbert from "../../../services/gilbert/lib/index.js";
 import GilbertFS from "@tforster/gilbert-fs";
 
 const __filename = fileURLToPath(import.meta.url);
