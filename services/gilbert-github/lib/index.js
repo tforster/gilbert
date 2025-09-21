@@ -1,10 +1,11 @@
 /* eslint-disable no-console */
 
-// Third party imports
+// Third party dependencies
 import GilbertFile from "@tforster/gilbert-file";
 import { Glob } from "@tforster/gilbert-glob";
+import { createLogger } from "@tforster/gilbert-logger";
 
-// Project imports
+// Project dependencies
 import TarStream from "./TarStream.js";
 
 /**

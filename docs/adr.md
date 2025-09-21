@@ -1,5 +1,262 @@
 # Architectural Decision Records
 
+## ADR-002: Data Transformation Architecture - Adapters and Stream Middleware
+
+**Status:** Accepted  
+**Date:** 2025-09-21  
+**Deciders:** Development Team  
+**Technical Story:** Define how Gilbert handles data transformation from diverse sources to Gilbert-compatible streams
+
+### Context
+
+Gilbert processes streams of GilbertFile objects that contain JSON data with specific properties (`uri`, `webproducerkey`, and user-defined data fields). Data sources vary widely - filesystem JSON files, markdown documentation, GitHub repositories, REST APIs, headless CMSs - and rarely match Gilbert's expected format directly.
+
+Previous Gilbert iterations used manually-created transformer functions that users would implement and Gilbert would dynamically require at runtime. This approach had limitations:
+
+- Tight coupling between transformation logic and Gilbert core
+- Difficulty testing transformations in isolation
+- No clear patterns for common transformation needs (pagination, sorting, etc.)
+- Limited reusability across projects
+
+### Decision
+
+**ACCEPTED:** Implement a three-layer data transformation architecture:
+
+```text
+Data Source → Adapter → [Stream Middleware] → Gilbert Core
+```
+
+1. **Adapters**: Convert any data source into streams of Gilbert-compatible JSON objects
+2. **Stream Middleware**: Optional TransformStreams for cross-file operations (pagination, sorting, SEO)
+3. **Gilbert Core**: Processes clean streams through template/asset pipelines
+
+### Rationale
+
+#### Three-Layer Architecture Benefits
+
+**Layer 1: Adapters (Single Responsibility)**
+
+- **Purpose**: Convert data sources to `ReadableStream<GilbertFile>` with Gilbert JSON structure
+- **Examples**: `gilbert-fs`, `gilbert-github`, `gilbert-api-*`, `gilbert-s3`
+- **Scope**: Pure data connectivity - no cross-file operations or complex transformations
+- **Interface**: Standardized src/dest pattern for consistency
+
+**Layer 2: Stream Middleware (Optional Enhancement)**
+
+- **Purpose**: Transform entire streams for cross-file operations
+- **Examples**: Pagination, sorting, categorization, SEO metadata, taxonomy
+- **Pattern**: Web API TransformStreams for composability
+- **Reusability**: Ecosystem of reusable middleware packages
+
+**Layer 3: Gilbert Core (Template Processing)**
+
+- **Purpose**: Process clean Gilbert JSON streams through template/asset pipelines
+- **Benefit**: Remains focused on core competency - static site generation
+
+#### Two Transformation Levels
+
+**File-Level Transformation** (Within Adapters):
+
+- **Pattern**: 1 file in → 1 file out
+- **Examples**: Markdown → JSON with metadata, API response → Gilbert JSON
+- **Implementation**: Transform functions within adapter src() methods
+
+**Stream-Level Transformation** (Middleware):
+
+- **Pattern**: Entire stream in → Modified stream out
+- **Examples**: Adding pagination metadata, sorting by date, grouping by category
+- **Implementation**: Web API TransformStreams between adapter and Gilbert
+
+#### Composability and Reusability
+
+```javascript
+// Example: Blog with pagination and SEO
+const dataStream = githubAdapter
+  .src("content/**/*.md")
+  .pipeThrough(markdownTransformMiddleware())
+  .pipeThrough(paginationMiddleware(10))
+  .pipeThrough(seoMiddleware());
+
+gilbert.compile({ uris: { data: dataStream } });
+```
+
+#### Ecosystem Development
+
+**Adapter Examples** (Project-Specific):
+
+- `gilbert-youtube-example`: YouTube Data API integration
+- `gilbert-contentful-example`: Headless CMS patterns
+- `gilbert-stripe-example`: E-commerce data transformation
+
+**Reusable Middleware** (Cross-Project):
+
+- `@gilbert/pagination-middleware`
+- `@gilbert/seo-middleware`
+- `@gilbert/taxonomy-middleware`
+- `@gilbert/sorting-middleware`
+
+### Implementation Strategy
+
+#### Phase 1: Adapter Interface Standardization
+
+- Align gilbert-fs and gilbert-github to consistent interface
+- Document adapter specification and contracts
+- Establish src/dest pattern conventions
+
+#### Phase 2: Progressive Examples
+
+1. **Simple Example**: JSON files from filesystem (port from existing tests)
+2. **Transform Example**: File-level transformation within adapter
+3. **Real-World Example**: GitHub CMS with pagination (stoptheparty.ca pattern)
+
+#### Phase 3: Stream Middleware Framework
+
+- Define middleware interface using Web API TransformStreams
+- Implement pagination middleware for cross-file operations
+- Create documentation and best practices
+
+#### Phase 4: Ecosystem Examples
+
+- Create API adapter examples (YouTube, Contentful, etc.)
+- Build reusable middleware packages
+- Develop comprehensive documentation
+
+### Interface Specifications
+
+#### Adapter Interface (Standardized)
+
+```javascript
+class GilbertAdapter {
+  constructor(options) {
+    // Adapter-specific configuration
+  }
+
+  src(pattern, options = {}) {
+    // Returns ReadableStream<GilbertFile>
+    // Each file contains Gilbert JSON: {uri, webproducerkey, ...data}
+  }
+
+  dest(destination, options = {}) {
+    // Returns WritableStream<GilbertFile>
+    // Writes files to adapter's target (filesystem, S3, etc.)
+  }
+}
+```
+
+#### Middleware Interface (Web API TransformStream)
+
+```javascript
+class PaginationMiddleware extends TransformStream {
+  constructor(itemsPerPage = 10) {
+    super({
+      transform: this.#transform.bind(this),
+      flush: this.#flush.bind(this),
+    });
+    this.itemsPerPage = itemsPerPage;
+    this.files = [];
+  }
+
+  #transform(gilbertFile, controller) {
+    // Collect files for cross-stream processing
+    this.files.push(gilbertFile);
+  }
+
+  #flush(controller) {
+    // Process entire collection and emit augmented files
+    const totalPages = Math.ceil(this.files.length / this.itemsPerPage);
+    this.files.forEach((file, index) => {
+      file.page = Math.floor(index / this.itemsPerPage) + 1;
+      file.pages = totalPages;
+      controller.enqueue(file);
+    });
+  }
+}
+```
+
+### Testing Strategy
+
+**Adapter Testing**:
+
+- Unit tests with mock data sources
+- Integration tests with real APIs/filesystems
+- Interface compliance tests
+
+**Middleware Testing**:
+
+- Unit tests with mock streams
+- Composition tests (multiple middleware)
+- Performance tests for large datasets
+
+**End-to-End Testing**:
+
+- Real-world examples as integration tests
+- Performance benchmarks with adapter + middleware chains
+
+### Risks and Mitigation
+
+**Risks**:
+
+1. **Adapter Interface Divergence**: Different adapters evolving incompatible interfaces
+2. **Middleware Performance**: Stream collection operations may impact performance
+3. **Complexity Creep**: Over-engineering simple use cases
+
+**Mitigation**:
+
+1. **Interface Specification**: Strict adapter interface documentation and testing
+2. **Performance Guidelines**: Benchmark middleware and provide optimization guidance
+3. **Progressive Complexity**: Start with simple examples, add complexity gradually
+
+### Consequences
+
+**Positive**:
+
+- ✅ Clear separation of concerns between data acquisition and processing
+- ✅ Reusable middleware ecosystem for common operations
+- ✅ Testable components in isolation
+- ✅ Composable data pipelines with Web API streams
+- ✅ Flexible support for diverse data sources
+- ✅ Maintains Gilbert core focus on static site generation
+
+**Negative**:
+
+- ❌ Additional architectural complexity for simple use cases
+- ❌ Learning curve for developers new to stream composition
+- ❌ Potential performance overhead from middleware layers
+
+**Neutral**:
+
+- 📋 Requires comprehensive documentation and examples
+- 📋 Need to maintain adapter interface consistency
+- 📋 Testing strategy must cover composition scenarios
+
+### Alternatives Considered
+
+1. **Transformer Functions in Gilbert Constructor**
+   - **Rejected**: Tight coupling, difficult to test, not reusable
+
+2. **Built-in Data Source Support**
+   - **Rejected**: Scope creep, impossible to support all data sources
+
+3. **Plugin Architecture**
+   - **Partially Adopted**: Middleware pattern provides plugin-like extensibility
+
+4. **User-Owned Pipeline Wrapper**
+   - **Rejected**: Higher barrier to entry, duplicated effort across projects
+
+### Related Decisions
+
+- ADR-001: Migration from Node.js Streams to Web API Streams
+- ADR-003: Adapter Interface Specification (Future)
+- ADR-004: Middleware Performance Guidelines (Future)
+
+### References
+
+- [Web Streams API Specification](https://streams.spec.whatwg.org/)
+- [TransformStream Documentation](https://developer.mozilla.org/en-US/docs/Web/API/TransformStream)
+- [Gilbert Developer Guide - Data Source API](../docs/developer-guide.md#data-source-api)
+
+---
+
 ## ADR-001: Migration from Node.js Streams to Web API Streams
 
 **Status:** Proposed  
@@ -22,43 +279,36 @@ Gilbert is a static site generator built on Node.js streams for processing conte
 **Core Components Using Node.js Streams:**
 
 1. **Main Gilbert Engine (`services/gilbert/lib/index.js`)**
-
    - Uses `Transform` stream as `mergeStream` to aggregate all pipeline outputs
    - Pipes multiple pipeline streams into the merge stream
    - Pattern: `pipeline.stream.pipe(this.mergeStream, { end: false })`
 
 2. **Template Pipeline (`services/gilbert/lib/TemplatePipeline.js`)**
-
    - Creates `Readable` stream with `objectMode: true`
    - Uses `Writable` streams to consume data and theme inputs
    - Processes Handlebars templates and JSON data
    - Complex stream coordination with `Utils.streamsFinish()`
 
 3. **Scripts Pipeline (`services/gilbert/lib/ScriptsPipeline.js`)**
-
    - Creates `Readable` stream for esbuild output
    - Processes JavaScript files through esbuild bundler
    - Pushes generated files to stream manually
 
 4. **Stylesheets Pipeline (`services/gilbert/lib/StylesheetsPipeline.js`)**
-
    - Similar pattern to Scripts Pipeline
    - Uses `Readable` stream with esbuild processing
    - Handles PostCSS/Autoprefixer transformations
 
 5. **Static Files Pipeline (`services/gilbert/lib/StaticFilesPipeline.js`)**
-
    - Uses `Transform` stream for pass-through processing
    - Modifies GilbertFile paths during transformation
 
 6. **Stream Utilities (`services/gilbert/lib/StreamUtils.js`)**
-
    - Heavy use of `Transform` and `Writable` streams
    - File synchronization and filtering logic
    - Uses CommonJS (`require`) syntax
 
 7. **Data Source (`services/gilbert/lib/DataSource.js`)**
-
    - Uses `Writable` streams to process data files
    - Handles JSON, GraphQL, and SQL file parsing
    - Also uses CommonJS syntax
@@ -272,15 +522,12 @@ Gilbert uses `gilbert-file` (GilbertFile) as a **custom Vinyl replacement** that
 ### Alternatives Considered
 
 1. **Dual API Support:** Maintain both Node.js and Web API streams
-
    - **Rejected:** Maintenance overhead outweighs benefits given existing favorable architecture
 
 2. **Runtime Detection:** Auto-select stream implementation based on environment
-
    - **Rejected:** Adds complexity; clean migration path is preferable
 
 3. **External Adapter Library:** Use existing libraries to bridge streams
-
    - **Partially Adopted:** Will use for CLI Node.js compatibility
 
 4. **Status Quo:** Keep Node.js streams only

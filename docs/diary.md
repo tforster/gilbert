@@ -1,5 +1,7 @@
 # Development Diary
 
+This diary captures recent work completed on the path to a fully refactored Gilbert that is now based on Web API Streams.
+
 ## 2025-01-23
 
 Successfully achieved Gilbert's Ultimate Test milestone with comprehensive 4-pipeline concurrent execution:
