@@ -4,12 +4,16 @@
 
 ## High Priority: Adapter Architecture & Examples
 
-- [ ] **Align adapter interfaces** - Standardize gilbert-fs and gilbert-github to consistent pattern
+- [x] **Align adapter interfaces** - Standardize gilbert-fs and gilbert-github to consistent pattern
   - [x] Decide on interface: Constructor + instance methods pattern (ES6 class conventions)
   - [x] Update gilbert-fs from static methods to constructor pattern
   - [x] Validate changes with static-files.test.js (all tests passing)
-  - [ ] Update gilbert-github to match standardized interface
-  - [ ] Document adapter interface specification
+  - [x] Update gilbert-github to match standardized interface
+  - [x] Refactor GGH to read(patterns)/write(destination) interface
+  - [x] Remove legacy initialize() and multi-stream routing
+  - [x] Create comprehensive test suite for GGH (7 tests passing)
+  - [x] Align constructor patterns and JSDoc documentation
+  - [x] Document adapter interface specification in developer-guide.md
 
 - [ ] **Create progressive examples** - Build examples folder with increasing complexity
   - [ ] Example 1: Simple JSON files from filesystem (port from existing tests)

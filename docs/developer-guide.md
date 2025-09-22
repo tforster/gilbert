@@ -26,6 +26,11 @@ _Comprehensive technical documentation for Gilbert and all gilbert-\* packages_
   - [gilbert-fs (Filesystem Integration)](#gilbert-fs-filesystem-integration)
   - [gilbert-github (GitHub Integration)](#gilbert-github-github-integration)
   - [gilbert-cli (Command Line Interface)](#gilbert-cli-command-line-interface)
+- [Adapter Interface Specification](#adapter-interface-specification)
+  - [Constructor Pattern](#constructor-pattern)
+  - [Read Method](#read-method)
+  - [Write Method](#write-method)
+  - [Usage Examples](#usage-examples)
 - [Pipelines Reference](#pipelines-reference)
   - [Template Pipeline](#template-pipeline)
   - [Scripts Pipeline](#scripts-pipeline)
@@ -676,6 +681,148 @@ gilbert develop --watch
 
 # Pipeline-specific control
 gilbert build --no-scripts --no-stylesheets
+```
+
+## Adapter Interface Specification
+
+Gilbert adapters provide standardized interfaces for reading from and writing to different data sources. All adapters follow a consistent constructor-based pattern with typed configuration options and Web API streams.
+
+### Constructor Pattern
+
+All Gilbert adapters use modern ES6 class constructors with private fields for configuration encapsulation:
+
+```javascript
+// Filesystem adapter
+import GilbertFS from "@tforster/gilbert-fs";
+const fsAdapter = new GilbertFS({
+  cwd: "/project/path", // Working directory (default: process.cwd())
+  base: "/project/src", // Base path for relative calculations (default: cwd)
+  strict: true, // Fail fast on errors (default: true in dev, false in prod)
+});
+
+// GitHub adapter
+import GilbertGitHub from "@tforster/gilbert-github";
+const githubAdapter = new GilbertGitHub({
+  repo: "owner/repository", // Required: GitHub repository
+  branch: "main", // Branch to fetch (default: "main")
+  token: "ghp_xxx", // GitHub token for private repos (optional)
+});
+```
+
+### Read Method
+
+The `read(patterns, options)` method creates a ReadableStream of GilbertFile objects matching the specified glob patterns:
+
+```javascript
+// Basic usage - single pattern
+const stream = adapter.read("**/*.hbs");
+
+// Array patterns for multiple file types
+const stream = adapter.read(["**/*.hbs", "**/*.json"]);
+
+// Override instance configuration per read operation
+const fsStream = fsAdapter.read("src/**/*", {
+  cwd: "/different/path",
+  base: "/different/base",
+});
+
+const githubStream = githubAdapter.read("templates/**/*", {
+  branch: "feature-branch",
+  token: "different-token",
+});
+```
+
+**Method Signature:**
+
+- `patterns` (string|string[]): Glob pattern(s) to match files
+- `options` (object): Optional configuration overrides
+- **Returns:** `ReadableStream<GilbertFile>`
+
+### Write Method
+
+The `write(destination)` method creates a WritableStream for outputting GilbertFile objects:
+
+```javascript
+// Filesystem writing
+const writeStream = fsAdapter.write("/output/directory");
+
+// GitHub writing (placeholder - not yet implemented)
+const uploadStream = githubAdapter.write("deployment-config");
+
+// Pipeline example
+await sourceAdapter.read("**/*").pipeThrough(transformStream).pipeTo(destinationAdapter.write("/output"));
+```
+
+**Method Signature:**
+
+- `destination` (string): Output destination configuration
+- **Returns:** `WritableStream<GilbertFile>`
+
+### Usage Examples
+
+**Local Development Workflow:**
+
+```javascript
+import GilbertFS from "@tforster/gilbert-fs";
+import Gilbert from "@tforster/gilbert";
+
+// Create adapters with configuration
+const source = new GilbertFS({ base: "./src" });
+const output = new GilbertFS({});
+
+// Build pipeline
+const gilbert = new Gilbert({
+  templates: { source: source.read("templates/**/*.hbs") },
+  static: { source: source.read("static/**/*") },
+});
+
+// Process and output
+await gilbert.stream().pipeTo(output.write("./dist"));
+```
+
+**Serverless CMS Workflow:**
+
+```javascript
+import GilbertGitHub from "@tforster/gilbert-github";
+import GilbertS3 from "@tforster/gilbert-s3";
+import Gilbert from "@tforster/gilbert";
+
+// GitHub as content source
+const contentSource = new GilbertGitHub({
+  repo: "company/website-content",
+  branch: "main",
+  token: process.env.GITHUB_TOKEN,
+});
+
+// S3 as publishing destination
+const s3Output = new GilbertS3({
+  bucket: "website-bucket",
+  region: "us-east-1",
+});
+
+// Build and deploy
+const gilbert = new Gilbert({
+  templates: { source: contentSource.read("templates/**/*.hbs") },
+  data: { source: contentSource.read("data/**/*.json") },
+});
+
+await gilbert.stream().pipeTo(s3Output.write("/"));
+```
+
+**Cross-Platform Adapter Swapping:**
+
+```javascript
+// Development: Local filesystem
+const devAdapter = new GilbertFS({ base: "./content" });
+
+// Production: GitHub repository
+const prodAdapter = new GilbertGitHub({
+  repo: "company/content",
+  token: process.env.GITHUB_TOKEN,
+});
+
+// Same interface, different data source
+const contentStream = (isDev ? devAdapter : prodAdapter).read(["templates/**/*.hbs", "data/**/*.json"]);
 ```
 
 ## Pipelines Reference
