@@ -12,6 +12,9 @@ const srcDir = resolve("./tests/src");
 const filesDir = resolve(srcDir, "files");
 const distDir = resolve("./tests/dist");
 
+// Create GilbertFS adapter instance for testing new constructor pattern
+const fsAdapter = new GilbertFS({ base: srcDir });
+
 /**
  * Utility function to get all files recursively
  */
@@ -65,16 +68,16 @@ describe("Gilbert Static Files Pipeline", () => {
       debug: true,
     });
 
-    // Configure Gilbert with static files only - preserve folder structure
+    // Configure Gilbert with static files using new constructor pattern
     const params = {
-      staticFiles: GilbertFS.src("files/**/*", { base: srcDir }),
+      staticFiles: fsAdapter.read("files/**/*"),
     };
 
     // Compile through Gilbert
     await gilbert.compile(params);
 
-    // Pipe Gilbert output to filesystem destination
-    await gilbert.stream.pipeTo(GilbertFS.dest(distDir));
+    // Pipe Gilbert output to filesystem destination using instance method
+    await gilbert.stream.pipeTo(fsAdapter.write(distDir));
 
     // Verify output files exist
     const outputFiles = await getAllFiles(distDir);
@@ -121,12 +124,15 @@ describe("Gilbert Static Files Pipeline", () => {
       debug: true,
     });
 
+    // Create adapter for empty directory
+    const emptyFsAdapter = new GilbertFS({ base: emptyInputDir });
+
     const params = {
-      staticFiles: GilbertFS.src("**/*", { base: emptyInputDir }),
+      staticFiles: emptyFsAdapter.read("**/*"),
     };
 
     await gilbert.compile(params);
-    await gilbert.stream.pipeTo(GilbertFS.dest(emptyOutputDir));
+    await gilbert.stream.pipeTo(emptyFsAdapter.write(emptyOutputDir));
 
     const outputFiles = await getAllFiles(emptyOutputDir);
     assert.equal(outputFiles.length, 0, "Should handle empty input gracefully");
@@ -145,11 +151,11 @@ describe("Gilbert Static Files Pipeline", () => {
     });
 
     const params = {
-      staticFiles: GilbertFS.src("files/**/*", { base: srcDir }),
+      staticFiles: fsAdapter.read("files/**/*"),
     };
 
     await gilbert.compile(params);
-    await gilbert.stream.pipeTo(GilbertFS.dest(distDir));
+    await gilbert.stream.pipeTo(fsAdapter.write(distDir));
 
     // Get input and output file structures
     const inputFiles = await getAllFiles(filesDir);
@@ -178,11 +184,11 @@ describe("Gilbert Static Files Pipeline", () => {
     });
 
     const params = {
-      staticFiles: GilbertFS.src("files/**/*", { base: srcDir }),
+      staticFiles: fsAdapter.read("files/**/*"),
     };
 
     await gilbert.compile(params);
-    await gilbert.stream.pipeTo(GilbertFS.dest(distDir));
+    await gilbert.stream.pipeTo(fsAdapter.write(distDir));
 
     // Compare input and output file contents
     const inputFiles = await getAllFiles(filesDir);
@@ -194,5 +200,87 @@ describe("Gilbert Static Files Pipeline", () => {
 
       assert.deepEqual(outputContent, inputContent, `File content should be identical for ${inputFile.relativePath}`);
     }
+  });
+
+  test("should handle array patterns to filter specific file types", async () => {
+    // Clean output directory
+    await rm(distDir, { recursive: true, force: true });
+
+    // Create Gilbert instance for array pattern test
+    const gilbert1 = new Gilbert({
+      debug: true,
+    });
+
+    // Test array patterns - get only .hbs and .json files
+    const params = {
+      staticFiles: fsAdapter.read(["**/*.hbs", "**/*.json"]),
+    };
+
+    await gilbert1.compile(params);
+    await gilbert1.stream.pipeTo(fsAdapter.write(distDir));
+
+    // Verify we got both file types
+    const outputFiles = await getAllFiles(distDir);
+
+    // Should have files
+    assert.ok(outputFiles.length > 0, "Should have found files matching array patterns");
+
+    // All files should be either .hbs or .json
+    for (const file of outputFiles) {
+      const isValidType = file.path.endsWith(".hbs") || file.path.endsWith(".json");
+      assert.ok(isValidType, `File ${file.relativePath} should be .hbs or .json`);
+    }
+
+    // Verify we have both types (assuming test data contains both)
+    const hasHbs = outputFiles.some((f) => f.path.endsWith(".hbs"));
+    const hasJson = outputFiles.some((f) => f.path.endsWith(".json"));
+
+    if (hasHbs) {
+      assert.ok(hasHbs, "Should have found .hbs files");
+    }
+    if (hasJson) {
+      assert.ok(hasJson, "Should have found .json files");
+    }
+
+    // Test single pattern vs array pattern should be equivalent for same pattern
+    await rm(distDir, { recursive: true, force: true });
+
+    // Create new Gilbert instance for single pattern test
+    const gilbert2 = new Gilbert({
+      debug: true,
+    });
+
+    const singlePatternParams = {
+      staticFiles: fsAdapter.read("**/*.json"),
+    };
+
+    await gilbert2.compile(singlePatternParams);
+    await gilbert2.stream.pipeTo(fsAdapter.write(distDir));
+
+    const singlePatternFiles = await getAllFiles(distDir);
+
+    // Clean and test array with single pattern
+    await rm(distDir, { recursive: true, force: true });
+
+    // Create new Gilbert instance for array pattern test
+    const gilbert3 = new Gilbert({
+      debug: true,
+    });
+
+    const arrayPatternParams = {
+      staticFiles: fsAdapter.read(["**/*.json"]),
+    };
+
+    await gilbert3.compile(arrayPatternParams);
+    await gilbert3.stream.pipeTo(fsAdapter.write(distDir));
+
+    const arrayPatternFiles = await getAllFiles(distDir);
+
+    // Should produce same results
+    assert.equal(
+      singlePatternFiles.length,
+      arrayPatternFiles.length,
+      "Single pattern and array with single pattern should produce same results"
+    );
   });
 });

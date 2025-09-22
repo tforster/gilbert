@@ -1,36 +1,64 @@
 // System dependencies
-import { mkdir, writeFile, readFile, stat, readdir } from "node:fs/promises";
+import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 // Third-party dependencies
-import { Glob } from "@tforster/gilbert-glob";
 import GilbertFile from "@tforster/gilbert-file";
+import { Glob } from "@tforster/gilbert-glob";
 import { createLogger } from "@tforster/gilbert-logger";
 
 // Create async logger with environment-based debug control
 const logger = createLogger(process.env.GILBERT_DEBUG === "true");
 
 /**
- * @typedef {Object} SrcOptions
+ * @typedef {Object} GilbertFSOptions
  * @property {string} [cwd] - Working directory for relative patterns (default: process.cwd())
  * @property {string} [base] - Base directory for relative path calculation (default: cwd)
  * @property {boolean} [strict] - Fail fast on individual file errors (default: true in development, false in production)
  */
 
 /**
- * @description Static utility methods for filesystem operations with GilbertFile objects
+ * @typedef {Object} ReadOptions
+ * @property {string} [cwd] - Working directory for relative patterns (default: instance cwd)
+ * @property {string} [base] - Base directory for relative path calculation (default: instance base)
+ * @property {boolean} [strict] - Fail fast on individual file errors (default: instance strict)
+ */
+
+/**
+ * @description Filesystem adapter for Gilbert with constructor-based configuration
  * Provides src() for reading files as ReadableStream and dest() for writing files as WritableStream
  * @class GilbertFS
  */
-class GilbertFS {
+export default class GilbertFS {
+  // Private fields for encapsulation
+  #cwd;
+  #base;
+  #strict;
+
+  /**
+   * Creates an instance of GilbertFS with default configuration
+   * @param {GilbertFSOptions} [options={}] - Default configuration for this adapter instance
+   */
+  constructor(options = {}) {
+    this.#cwd = options.cwd || process.cwd();
+    this.#base = options.base || this.#cwd;
+    this.#strict = options.strict !== undefined ? options.strict : process.env.NODE_ENV !== "production";
+
+    // Resolve paths to absolute
+    this.#cwd = path.resolve(this.#cwd);
+    this.#base = path.resolve(this.#base);
+
+    if (process.env.NODE_ENV !== "production") {
+      logger.debug(`GilbertFS: Initialized with cwd: ${this.#cwd}, base: ${this.#base}, strict: ${this.#strict}`);
+    }
+  }
   /**
    * Creates a WritableStream for writing GilbertFile objects to the filesystem
    * @param {string} destination - Destination directory (absolute or relative to cwd)
    * @param {Object} [options={}] - Optional stream configuration
    * @returns {WritableStream<GilbertFile>} - WritableStream for writing files
-   * @static
    */
-  static dest(destination, options = {}) {
+  write(destination, options = {}) {
     const basePath = path.resolve(destination);
 
     return new WritableStream(
@@ -41,7 +69,7 @@ class GilbertFS {
         start() {
           // Log initialization for debugging
           if (process.env.NODE_ENV !== "production") {
-            logger.debug(`GilbertFS.dest: Initialized with base path: ${basePath}`);
+            logger.debug(`GilbertFS.write: Initialized with base path: ${basePath}`);
           }
         },
 
@@ -56,7 +84,7 @@ class GilbertFS {
             await GilbertFS.#writeFile(file, basePath);
           } catch (error) {
             // eslint-disable-next-line no-console
-            console.error(`GilbertFS.dest: Error writing file ${file.path}:`, error);
+            console.error(`GilbertFS.write: Error writing file ${file.path}:`, error);
             controller.error(error);
           }
         },
@@ -66,7 +94,7 @@ class GilbertFS {
          */
         close() {
           if (process.env.NODE_ENV !== "production") {
-            logger.debug("GilbertFS.dest: Stream closed successfully");
+            logger.debug("GilbertFS.write: Stream closed successfully");
           }
         },
 
@@ -76,7 +104,7 @@ class GilbertFS {
          */
         abort(reason) {
           // eslint-disable-next-line no-console
-          console.error("GilbertFS.dest: Stream aborted:", reason);
+          console.error("GilbertFS.write: Stream aborted:", reason);
         },
       },
       options
@@ -151,29 +179,34 @@ class GilbertFS {
 
     // Log successful write in debug mode
     if (process.env.NODE_ENV !== "production") {
-      logger.debug(`GilbertFS.dest: Wrote ${outputPath} (${contents.length} bytes)`);
+      logger.debug(`GilbertFS.write: Wrote ${outputPath} (${contents.length} bytes)`);
     }
   }
 
   /**
-   * Static method for reading files from filesystem using glob patterns
+   * Creates a ReadableStream of GilbertFile objects from filesystem glob patterns.
+   * Uses instance configuration as defaults, with method options taking precedence.
    * Handles both absolute and relative glob patterns intelligently:
    * - Absolute patterns (e.g., "/home/user/files/*.js") use their own base path
-   * - Relative patterns (e.g., "src/*.js") are resolved against cwd
+   * - Relative patterns (e.g., "src/*.js") are resolved against instance base
    * @param {string|string[]} patterns - Glob pattern(s) to match files
-   * @param {SrcOptions} [options={}] - Optional configuration
+   * @param {ReadOptions} [options={}] - Optional configuration overrides
    * @returns {ReadableStream<GilbertFile>} - Stream of GilbertFile objects
    */
-  static src(patterns, options = {}) {
-    const { cwd = process.cwd(), base } = options;
-    const resolvedCwd = path.resolve(cwd);
-    const resolvedBase = base ? path.resolve(base) : resolvedCwd;
+  read(patterns, options = {}) {
+    // Merge instance configuration with method options (method options take precedence)
+    const base = options.base ? path.resolve(options.base) : this.#base;
+    const strict = options.strict !== undefined ? options.strict : this.#strict;
 
     // Ensure patterns is an array
     const patternArray = Array.isArray(patterns) ? patterns : [patterns];
 
+    // Bind instance methods for use in ReadableStream
+    const createGilbertFile = this.#createGilbertFile.bind(this);
+
     return new ReadableStream({
       async start(controller) {
+        // Track visited files to avoid duplicates
         const visited = new Set();
         let hasErrored = false;
 
@@ -193,7 +226,7 @@ class GilbertFS {
               searchPattern = pattern;
             } else {
               // Relative pattern: search in base directory
-              searchDir = resolvedBase;
+              searchDir = base;
               searchPattern = pattern;
             }
 
@@ -206,23 +239,33 @@ class GilbertFS {
                 if (!visited.has(filePath)) {
                   visited.add(filePath);
                   try {
-                    const file = await GilbertFS.#createGilbertFile(filePath, resolvedBase);
+                    const file = await createGilbertFile(filePath, base);
                     if (file && !hasErrored) {
                       controller.enqueue(file);
                     }
                   } catch (error) {
                     // In strict mode, fail fast
-                    hasErrored = true;
-                    controller.error(new Error(`Failed to read file ${filePath}: ${error.message}`));
-                    return;
+                    if (strict) {
+                      hasErrored = true;
+                      controller.error(new Error(`Failed to read file ${filePath}: ${error.message}`));
+                      return;
+                    }
+                    // In non-strict mode, log and continue
+                    // eslint-disable-next-line no-console
+                    console.warn(`GilbertFS: Skipping file ${filePath}: ${error.message}`);
                   }
                 }
               }
             } catch (error) {
               // In strict mode, fail fast
-              hasErrored = true;
-              controller.error(new Error(`Failed to process pattern ${searchPattern}: ${error.message}`));
-              return;
+              if (strict) {
+                hasErrored = true;
+                controller.error(new Error(`Failed to process pattern ${searchPattern}: ${error.message}`));
+                return;
+              }
+              // In non-strict mode, log and continue
+              // eslint-disable-next-line no-console
+              console.warn(`GilbertFS: Skipping pattern ${searchPattern}: ${error.message}`);
             }
           }
 
@@ -279,7 +322,7 @@ class GilbertFS {
    * @param {string} base - Base directory for relative path calculation
    * @returns {Promise<GilbertFile|null>} - GilbertFile instance or null if file should be skipped
    */
-  static async #createGilbertFile(filePath, base) {
+  async #createGilbertFile(filePath, base) {
     try {
       const stats = await stat(filePath);
 
@@ -312,10 +355,15 @@ class GilbertFS {
         stat: stats,
       });
     } catch (error) {
-      // Log error but don't throw - let caller decide how to handle
-      throw new Error(`Failed to create GilbertFile for ${filePath}: ${error.message}`);
+      // Use instance strict setting for error handling
+      if (this.#strict) {
+        throw new Error(`Failed to create GilbertFile for ${filePath}: ${error.message}`);
+      } else {
+        // In non-strict mode, log and return null
+        // eslint-disable-next-line no-console
+        console.warn(`GilbertFS: Skipping file ${filePath}: ${error.message}`);
+        return null;
+      }
     }
   }
 }
-
-export default GilbertFS;

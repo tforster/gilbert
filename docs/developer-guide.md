@@ -2851,6 +2851,14 @@ gilbert/
 - Include JSDoc comments for public APIs
 - **Use English spellings** (e.g., `colour`, `optimise`, `initialise`) rather than American spellings in both code and comments
 
+**ES6 Class Conventions:**
+
+- Use ES6 classes with private fields (`#field`) and methods (`#method()`) to encapsulate complexity
+- Export classes as default exports from files named after the class
+- **File naming**: Use PascalCase for class files (e.g., `MyWonderClass.js`) - uppercase first letter indicates the file exports a constructor
+- **Usage pattern**: `const myWonderClass = new MyWonderClass(options)`
+- **Target environments**: Modern evergreen browsers, Node.js 18+, Cloudflare Workers, Deno, Bun
+
 **Example:**
 
 ```javascript
