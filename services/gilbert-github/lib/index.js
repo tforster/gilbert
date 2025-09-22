@@ -8,163 +8,176 @@ import { createLogger } from "@tforster/gilbert-logger";
 // Project dependencies
 import TarStream from "./TarStream.js";
 
+// Create async logger with environment-based debug control
+const logger = createLogger(process.env.GILBERT_DEBUG === "true");
+
 /**
- * @description Creates one or more streams of files from the named Github branch after fetching the archive
- * @export
+ * @typedef {Object} GilbertGitHubOptions
+ * @property {string} repo - GitHub repository in format "owner/repo"
+ * @property {string} [branch="main"] - Branch name to fetch (default: "main")
+ * @property {string} [token] - GitHub personal access token for private repositories
+ */
+
+/**
+ * @description GitHub repository adapter for Gilbert with constructor-based configuration
+ * Provides read() for fetching files as ReadableStream and write() for uploading files as WritableStream
  * @class GilbertGitHub
  */
 export default class GilbertGitHub {
+  // Private fields for encapsulation
   #repo;
   #branch;
   #token;
-  #options;
 
   /**
-   * Creates an instance of GilbertGitHub.
-   * @param {Object} options
-   * @memberof GilbertGitHub
+   * Creates an instance of GilbertGitHub with repository configuration
+   * @param {GilbertGitHubOptions} options - Configuration for this adapter instance
    */
   constructor(options) {
-    this.#repo = options.repo;
-    this.#branch = options.branch;
-    this.#token = options.token;
-    this.#options = options;
-  }
-
-  /**
-   * @description Creates ReadableStreams that start the GitHub fetch pipeline immediately
-   * @returns {Object}
-   * @memberof GilbertGitHub
-   */
-  initialize(streamsConfig = {}) {
-    this.#options.streams = streamsConfig;
-    const outputStreams = {};
-
-    // Create TransformStreams for each configured output stream
-    const streamTransforms = {};
-    for (const streamName of Object.keys(streamsConfig)) {
-      const transform = new TransformStream();
-      outputStreams[streamName] = transform.readable;
-      streamTransforms[streamName] = transform.writable.getWriter();
+    if (!options?.repo) {
+      throw new Error("GitHub repository is required in format 'owner/repo'");
     }
 
-    // Start the pipeline immediately to avoid deadlocks
-    this.startPipeline(streamTransforms).catch((error) => {
-      // Rethrow the error to be handled by the caller
-      throw error;
-    });
-
-    return outputStreams;
+    this.#repo = options.repo;
+    this.#branch = options.branch || "main";
+    this.#token = options.token;
   }
 
   /**
-   * @description Starts the GitHub fetch and processing pipeline
-   * @param {Object} streamControllers - Writers for each output stream
+   * @typedef {Object} ReadOptions
+   * @property {string} [branch] - Override branch for this read operation (default: instance branch)
+   * @property {string} [token] - Override token for this read operation (default: instance token)
+   */
+
+  /**
+   * Creates a ReadableStream of GilbertFile objects from GitHub repository glob patterns.
+   * Fetches the repository archive, extracts files, and filters by the specified patterns.
+   * @param {string|string[]} patterns - Glob pattern(s) to match files against
+   * @param {ReadOptions} [options={}] - Optional configuration overrides
+   * @returns {ReadableStream<GilbertFile>} - Stream of GilbertFile objects
+   */
+  read(patterns = "**/*", options = {}) {
+    // Use method options or fall back to instance configuration
+    const branch = options.branch || this.#branch;
+    const token = options.token || this.#token;
+
+    // Normalize patterns to array for consistent handling
+    const patternArray = Array.isArray(patterns) ? patterns : [patterns];
+
+    // Compile glob patterns once
+    const compiledGlobs = patternArray.map((pattern) => new Glob(pattern));
+
+    // Create a readable stream that will contain the filtered files
+    let streamController;
+    const readableStream = new ReadableStream({
+      start(controller) {
+        streamController = controller;
+      },
+    });
+
+    // Start the pipeline processing in the background
+    this.startFilteredPipeline(streamController, compiledGlobs, { branch, token });
+
+    return readableStream;
+  }
+
+  /**
+   * @description Starts the GitHub fetch and processing pipeline for read() method
+   * @param {ReadableStreamDefaultController} streamController - Controller for the output stream
+   * @param {Glob[]} compiledGlobs - Compiled glob patterns for file filtering
+   * @param {Object} [overrides={}] - Optional branch/token overrides
    * @returns {Promise<void>}
    * @memberof GilbertGitHub
    */
-  async startPipeline(streamControllers) {
+  async startFilteredPipeline(streamController, compiledGlobs, overrides = {}) {
     try {
+      // Use overrides or fall back to instance configuration
+      const branch = overrides.branch || this.#branch;
+      const token = overrides.token || this.#token;
+
       // Construct the URL for the GitHub archive
-      const url = `https://github.com/${this.#repo}/archive/refs/heads/${this.#branch}.tar.gz`;
+      const url = `https://github.com/${this.#repo}/archive/refs/heads/${branch}.tar.gz`;
 
       // Create fetch options
       /** @type {RequestInit} */
       const fetchOptions = {
-        headers: this.#token ? { Authorization: `Bearer ${this.#token}` } : {},
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
         redirect: "follow", // Follow redirects
         signal: AbortSignal.timeout(30000), // 30 second timeout
       };
 
       console.log(`Fetching archive from: ${url}`);
 
+      // Fetch the tar.gz archive from GitHub
       const response = await fetch(url, fetchOptions);
+
       if (!response.ok) {
-        throw new Error(`Status: ${response.status}. Has your GitHub PAT expired?`);
+        throw new Error(`GitHub archive request failed: ${response.status} ${response.statusText}`);
       }
 
       // Create processing pipeline
       const decompressionStream = new DecompressionStream("gzip");
       const untarStream = new TarStream().untar();
-      const routerStream = this.createRouterStream(streamControllers);
 
-      console.log("Created pipeline components, connecting...");
+      console.log("Created filtered pipeline components, connecting...");
 
-      // Connect and run the pipeline
+      // Stream the response through decompression and extraction
       await response.body
         .pipeThrough(decompressionStream)
         .pipeThrough(untarStream)
-        .pipeThrough(routerStream)
         .pipeTo(
           new WritableStream({
-            write() {
-              // Router handles all the writing, this is just to complete the pipeline
+            async write(fileObject) {
+              const gilbertFile = new GilbertFile(fileObject); // Convert to GilbertFile for consistency
+              console.log(`Processing file: "${gilbertFile.path}" (type: ${gilbertFile.contentType}, size: ${gilbertFile.size})`);
+
+              // Check if file matches any of the patterns
+              if (compiledGlobs.some((glob) => glob.test(gilbertFile.path))) {
+                console.log(`Matched pattern: ${gilbertFile.path}`);
+                streamController.enqueue(gilbertFile);
+              }
             },
             close() {
-              console.log("Pipeline processing complete.");
+              console.log("Filtered pipeline processing complete.");
+              streamController.close();
             },
           })
         );
 
-      console.log("Pipeline completed successfully.");
+      console.log("Filtered pipeline completed successfully.");
     } catch (error) {
-      // Close all stream controllers with error
-      for (const writer of Object.values(streamControllers)) {
-        try {
-          await writer.abort(error);
-        } catch {
-          // Ignore errors when aborting
-        }
-      }
-      // Rethrow the error to be handled by the caller
+      streamController.error(error);
       throw error;
     }
   }
 
   /**
-   * @description Creates the router transform stream that distributes files to output streams
-   * @param {Object} streamControllers - Writers for each output stream
-   * @returns {TransformStream}
-   * @memberof GilbertGitHub
+   * Creates a WritableStream for writing GilbertFile objects to GitHub repository
+   * @param {string} destination - Destination configuration for GitHub uploads
+   * @returns {WritableStream<GilbertFile>} - WritableStream for uploading files
    */
-  createRouterStream(streamControllers) {
-    // Compile glob patterns once
-    const streamGlobs = {};
-    for (const [streamName, globs] of Object.entries(this.#options.streams)) {
-      // Handle both string and array glob patterns
-      const globArray = Array.isArray(globs) ? globs : [globs];
-      streamGlobs[streamName] = globArray.map((glob) => new Glob(glob));
-    }
-
-    return new TransformStream({
-      async transform(fileObject) {
-        fileObject = new GilbertFile(fileObject); // Convert to GilbertFile for consistency
-        // Log all files being processed to understand the archive contents
-        console.log(`Processing file: "${fileObject.path}" (type: ${fileObject.contentType}, size: ${fileObject.size})`);
-
-        // Route file to appropriate streams based on glob matching
-        for (const [streamName, globs] of Object.entries(streamGlobs)) {
-          if (globs.some((glob) => glob.test(fileObject.path))) {
-            console.log(`Routing ${fileObject.path} to ${streamName} stream`);
-            try {
-              await streamControllers[streamName].write(fileObject);
-            } catch (error) {
-              console.error(`Error writing to ${streamName} stream:`, error);
-            }
-          }
+  write(destination) {
+    return new WritableStream({
+      /**
+       * Start method called when the stream is created
+       */
+      start() {
+        // Log initialization for debugging
+        if (process.env.NODE_ENV !== "production") {
+          logger.debug(`GilbertGitHub.write: Initialized for destination: ${destination}`);
         }
       },
 
-      async flush() {
-        // Close all stream controllers when pipeline is complete
-        for (const [streamName, writer] of Object.entries(streamControllers)) {
-          try {
-            await writer.close();
-            console.log(`Closed ${streamName} stream`);
-          } catch (error) {
-            console.error(`Error closing ${streamName} stream:`, error);
-          }
-        }
+      /**
+       * Write method called for each file chunk
+       * @param {GilbertFile} fileObject - GilbertFile object to upload to GitHub
+       * @returns {Promise<void>}
+       */
+      async write(fileObject) {
+        // For GitHub adapter, writing might involve pushing to GitHub API
+        // For now, this is a placeholder that could be implemented for GitHub uploads
+        console.log(`Would write ${fileObject.path} to ${destination}`);
+        throw new Error("GitHub write operations not yet implemented");
       },
     });
   }

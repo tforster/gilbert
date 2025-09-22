@@ -2,7 +2,8 @@
   "author": "tforster",
   "dependencies": {
     "@tforster/gilbert-file": "^0.1.0",
-    "@tforster/gilbert-glob": "^0.1.0"
+    "@tforster/gilbert-glob": "^0.1.0",
+    "@tforster/gilbert-logger": "^0.1.0"
   },
   "description": "GitHub repository source for Gilbert static site generator",
   "exports": {
@@ -13,6 +14,9 @@
   ],
   "main": "lib/index.js",
   "name": "@tforster/gilbert-github",
+  "scripts": {
+    "test": "node --test tests/github-files.test.js"
+  },
   "type": "module",
   "version": "0.1.0"
 }
