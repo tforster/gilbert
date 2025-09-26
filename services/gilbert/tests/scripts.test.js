@@ -8,6 +8,9 @@ import GilbertFS from "@tforster/gilbert-fs";
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
+// Create GilbertFS adapter instance
+const fsAdapter = new GilbertFS();
+
 describe("Gilbert Scripts Pipeline", () => {
   const cleanDist = async () => {
     const distPath = path.join(__dirname, "dist");
@@ -30,8 +33,8 @@ describe("Gilbert Scripts Pipeline", () => {
       scripts: entryPoints,
     });
 
-    // Pipe Gilbert output to filesystem destination
-    await gilbert.stream.pipeTo(GilbertFS.dest(path.join(__dirname, "dist")));
+    // Pipe Gilbert output to filesystem destination using adapter
+    await gilbert.stream.pipeTo(fsAdapter.write(path.join(__dirname, "dist")));
 
     const outputDir = path.join(__dirname, "dist");
     assert.ok(existsSync(outputDir), "Output directory should exist");
@@ -63,8 +66,8 @@ describe("Gilbert Scripts Pipeline", () => {
       },
     });
 
-    // Pipe Gilbert output to filesystem destination
-    await gilbert.stream.pipeTo(GilbertFS.dest(path.join(__dirname, "dist")));
+    // Pipe Gilbert output to filesystem destination using adapter
+    await gilbert.stream.pipeTo(fsAdapter.write(path.join(__dirname, "dist")));
 
     const outputDir = path.join(__dirname, "dist");
     assert.ok(existsSync(outputDir), "Output directory should exist");

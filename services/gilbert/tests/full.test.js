@@ -16,6 +16,12 @@ const testDir = new URL(".", import.meta.url).pathname;
 const srcDir = join(testDir, "src");
 const distDir = join(testDir, "dist");
 
+// Create GilbertFS adapter instances
+const dataAdapter = new GilbertFS({ base: resolve(srcDir, "data") });
+const templatesAdapter = new GilbertFS({ base: resolve(srcDir, "templates") });
+const staticAdapter = new GilbertFS({ base: srcDir });
+const outputAdapter = new GilbertFS();
+
 before(async () => {
   if (existsSync(distDir)) {
     await rm(distDir, { recursive: true, force: true });
@@ -33,17 +39,17 @@ test("Gilbert full website build", async () => {
 
   const gilbert = new Gilbert(config);
 
-  // Compile all content together
+  // Compile all content together using adapter API
   await gilbert.compile({
-    uris: GilbertFS.src("**/*.json", { base: resolve(srcDir, "data") }),
-    templates: GilbertFS.src("**/*.hbs", { base: resolve(srcDir, "templates") }),
+    uris: dataAdapter.read("**/*.json"),
+    templates: templatesAdapter.read("**/*.hbs"),
     scripts: [resolve(srcDir, "scripts", "main.js")],
     stylesheets: [resolve(srcDir, "stylesheets", "main.css")],
-    staticFiles: GilbertFS.src("files/**/*", { base: srcDir }),
+    staticFiles: staticAdapter.read("files/**/*"),
   });
 
-  // Execute the build
-  await gilbert.stream.pipeTo(GilbertFS.dest(distDir));
+  // Execute the build using adapter
+  await gilbert.stream.pipeTo(outputAdapter.write(distDir));
 
   // Verify website was built
   assert.ok(existsSync(distDir), "Website should be built");

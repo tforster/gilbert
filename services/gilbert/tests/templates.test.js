@@ -13,6 +13,11 @@ const templatesDir = resolve(srcDir, "templates");
 const dataDir = resolve(srcDir, "data");
 const distDir = resolve("./tests/dist");
 
+// Create GilbertFS adapter instances for testing
+const dataAdapter = new GilbertFS({ base: dataDir });
+const templatesAdapter = new GilbertFS({ base: templatesDir });
+const outputAdapter = new GilbertFS(); // No base, use direct path
+
 describe("Gilbert Template Pipeline", () => {
   test("should process templates and generate HTML files", async () => {
     // Clean output directory and ensure it exists
@@ -23,24 +28,23 @@ describe("Gilbert Template Pipeline", () => {
       debug: true,
     });
 
-    // Configure Gilbert with templates and data
+    // Configure Gilbert with templates and data using new adapter API
     const params = {
-      uris: GilbertFS.src("**/*.json", { base: dataDir }),
-      templates: GilbertFS.src("**/*.hbs", { base: templatesDir }),
+      uris: dataAdapter.read("**/*.json"),
+      templates: templatesAdapter.read("**/*.hbs"),
     };
 
     // Compile through Gilbert
     await gilbert.compile(params);
 
-    // Pipe Gilbert output to filesystem destination
-    await gilbert.stream.pipeTo(GilbertFS.dest(distDir));
+    // Pipe Gilbert output to filesystem destination using adapter instance
+    await gilbert.stream.pipeTo(outputAdapter.write(distDir));
 
     // Basic verification - check if any HTML files were generated
     const files = await readdir(distDir);
     const htmlFiles = files.filter((f) => f.endsWith(".html"));
 
     assert.ok(htmlFiles.length > 0, "Should generate at least one HTML file");
-    console.log(`Generated ${htmlFiles.length} HTML files: ${htmlFiles.join(", ")}`);
   });
 
   test("should populate template variables with data from JSON files", async () => {
@@ -52,15 +56,15 @@ describe("Gilbert Template Pipeline", () => {
       debug: true,
     });
 
-    // Configure Gilbert with templates and data
+    // Configure Gilbert with templates and data using new adapter API
     const params = {
-      uris: GilbertFS.src("**/*.json", { base: dataDir }),
-      templates: GilbertFS.src("**/*.hbs", { base: templatesDir }),
+      uris: dataAdapter.read("**/*.json"),
+      templates: templatesAdapter.read("**/*.hbs"),
     };
 
     // Compile through Gilbert
     await gilbert.compile(params);
-    await gilbert.stream.pipeTo(GilbertFS.dest(distDir));
+    await gilbert.stream.pipeTo(outputAdapter.write(distDir));
 
     // Test specific file: homepage
     const homepageData = JSON.parse(await readFile(resolve(dataDir, "homepage.json"), "utf8"));
