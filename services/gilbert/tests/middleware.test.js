@@ -12,7 +12,7 @@ import GilbertFS from "@tforster/gilbert-fs";
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
 // Test paths
-const srcDir = resolve("./tests/src");
+const srcDir = resolve("../../tests/src");
 const dataDir = resolve(srcDir, "data");
 const templatesDir = resolve(srcDir, "templates");
 
@@ -21,7 +21,7 @@ const dataAdapter = new GilbertFS({ base: dataDir });
 const templatesAdapter = new GilbertFS({ base: templatesDir });
 const outputAdapter = new GilbertFS();
 
-describe("Gilbert Data Middleware", () => {
+await describe("Gilbert Data Middleware", { concurrency: 1 }, () => {
   const cleanDist = async () => {
     const distPath = path.join(__dirname, "dist");
     try {
@@ -30,10 +30,10 @@ describe("Gilbert Data Middleware", () => {
     } catch {
       await mkdir(distPath, { recursive: true });
     }
+    return distPath;
   };
   test("should process data through middleware before templates", async () => {
-    await cleanDist();
-    const testDistDir = path.join(__dirname, "dist");
+    const testDistDir = await cleanDist();
 
     // Create simple middleware that adds a custom field
     const addCustomFieldMiddleware = async (dataFiles) => {
@@ -98,8 +98,7 @@ describe("Gilbert Data Middleware", () => {
   });
 
   test("should work without middleware (passthrough)", async () => {
-    await cleanDist();
-    const testDistDir = path.join(__dirname, "dist");
+    const testDistDir = await cleanDist();
 
     // Create Gilbert instance without middleware
     const gilbert = new Gilbert(
@@ -126,8 +125,7 @@ describe("Gilbert Data Middleware", () => {
   });
 
   test("should process markdown in bio field using complex middleware", async () => {
-    await cleanDist();
-    const testDistDir = path.join(__dirname, "dist");
+    const testDistDir = await cleanDist();
 
     // Configure marked for GitHub Flavored Markdown
     marked.setOptions({

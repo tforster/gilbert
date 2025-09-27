@@ -6,7 +6,7 @@ import { test, describe } from "node:test";
 import assert from "node:assert";
 import { createLogger } from "../lib/index.js";
 
-describe("Gilbert Logger Tests", () => {
+describe("Gilbert Logger Tests", { concurrency: 1 }, () => {
   test("createLogger with debug=false creates no-op logger", () => {
     const logger = createLogger(false);
 

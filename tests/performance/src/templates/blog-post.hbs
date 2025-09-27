@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 {{> components/head.hbs}}
+
 <body class="blog-post-page">
   {{> components/header.hbs}}
-  
+
   <main class="main-content">
     <div class="container">
       <article class="blog-post">
@@ -19,36 +20,44 @@
             {{excerpt}}
           </div>
         </header>
-        
+
         <div class="post-content">
+          {{#if content}}
+            <section class="main-content-section">
+              <div class="main-content">
+                {{{content}}}
+              </div>
+            </section>
+          {{/if}}
+
           <section class="content-section">
             <h2>{{section1Title}}</h2>
             <div class="section-content">
               {{section1Content}}
             </div>
           </section>
-          
+
           <section class="content-section">
             <h2>{{section2Title}}</h2>
             <div class="section-content">
               {{section2Content}}
             </div>
           </section>
-          
+
           <section class="content-section">
             <h2>{{section3Title}}</h2>
             <div class="section-content">
               {{section3Content}}
             </div>
           </section>
-          
+
           <section class="content-section">
             <h2>{{section4Title}}</h2>
             <div class="section-content">
               {{section4Content}}
             </div>
           </section>
-          
+
           <section class="content-section">
             <h2>{{section5Title}}</h2>
             <div class="section-content">
@@ -56,7 +65,7 @@
             </div>
           </section>
         </div>
-        
+
         <footer class="post-footer">
           <div class="post-tags">
             <strong>Tags:</strong> {{tags}}
@@ -69,7 +78,8 @@
       </article>
     </div>
   </main>
-  
+
   {{> components/footer.hbs}}
 </body>
+
 </html>

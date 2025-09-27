@@ -8,7 +8,7 @@ import Gilbert from "../lib/index.js";
 import GilbertFS from "@tforster/gilbert-fs";
 
 // Test paths
-const srcDir = resolve("./tests/src");
+const srcDir = resolve("../../tests/src");
 const templatesDir = resolve(srcDir, "templates");
 const dataDir = resolve(srcDir, "data");
 const distDir = resolve("./tests/dist");
@@ -18,27 +18,26 @@ const dataAdapter = new GilbertFS({ base: dataDir });
 const templatesAdapter = new GilbertFS({ base: templatesDir });
 const outputAdapter = new GilbertFS(); // No base, use direct path
 
-describe("Gilbert Template Pipeline", () => {
+await describe("Gilbert Template Pipeline", { concurrency: 1 }, () => {
   test("should process templates and generate HTML files", async () => {
     // Clean output directory and ensure it exists
     await rm(distDir, { recursive: true, force: true });
 
-    // Create Gilbert instance
-    const gilbert = new Gilbert({
-      debug: true,
-    });
+    // Create Gilbert instance with new API signature
+    const gilbert = new Gilbert(
+      {
+        templates: templatesAdapter.read("**/*.hbs"),
+        data: {
+          source: dataAdapter.read("**/*.json"),
+        },
+      },
+      {
+        debug: true,
+      }
+    );
 
-    // Configure Gilbert with templates and data using new adapter API
-    const params = {
-      uris: dataAdapter.read("**/*.json"),
-      templates: templatesAdapter.read("**/*.hbs"),
-    };
-
-    // Compile through Gilbert
-    await gilbert.compile(params);
-
-    // Pipe Gilbert output to filesystem destination using adapter instance
-    await gilbert.stream.pipeTo(outputAdapter.write(distDir));
+    // Compile and pipe Gilbert output to filesystem destination
+    await (await gilbert.compile()).pipeTo(outputAdapter.write(distDir));
 
     // Basic verification - check if any HTML files were generated
     const files = await readdir(distDir);
@@ -51,20 +50,21 @@ describe("Gilbert Template Pipeline", () => {
     // Clean output directory and ensure it exists
     await rm(distDir, { recursive: true, force: true });
 
-    // Create Gilbert instance
-    const gilbert = new Gilbert({
-      debug: true,
-    });
+    // Create Gilbert instance with new API signature
+    const gilbert = new Gilbert(
+      {
+        templates: templatesAdapter.read("**/*.hbs"),
+        data: {
+          source: dataAdapter.read("**/*.json"),
+        },
+      },
+      {
+        debug: true,
+      }
+    );
 
-    // Configure Gilbert with templates and data using new adapter API
-    const params = {
-      uris: dataAdapter.read("**/*.json"),
-      templates: templatesAdapter.read("**/*.hbs"),
-    };
-
-    // Compile through Gilbert
-    await gilbert.compile(params);
-    await gilbert.stream.pipeTo(outputAdapter.write(distDir));
+    // Compile and pipe Gilbert output to filesystem destination
+    await (await gilbert.compile()).pipeTo(outputAdapter.write(distDir));
 
     // Test specific file: homepage
     const homepageData = JSON.parse(await readFile(resolve(dataDir, "homepage.json"), "utf8"));

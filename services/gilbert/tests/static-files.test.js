@@ -8,7 +8,7 @@ import Gilbert from "../lib/index.js";
 import GilbertFS from "@tforster/gilbert-fs";
 
 // Test paths - preserve folder structure from src to dist
-const srcDir = resolve("./tests/src");
+const srcDir = resolve("../../tests/src");
 const filesDir = resolve(srcDir, "files");
 const distDir = resolve("./tests/dist");
 
@@ -48,7 +48,7 @@ async function getAllFiles(dir, files = [], baseDir = null) {
   return files;
 }
 
-describe("Gilbert Static Files Pipeline", () => {
+await describe("Gilbert Static Files Pipeline", { concurrency: 1 }, () => {
   // Note: Using committed test files in src/files directory, no dynamic file creation needed
 
   // afterEach(async () => {
@@ -63,21 +63,19 @@ describe("Gilbert Static Files Pipeline", () => {
     const inputFiles = await getAllFiles(filesDir);
     const expectedFileCount = inputFiles.length;
 
-    // Create Gilbert instance
-    const gilbert = new Gilbert({
-      debug: true,
-    });
+    // Create Gilbert instance with new API signature
+    // Use pattern that includes dotfiles to match the test expectation
+    const gilbert = new Gilbert(
+      {
+        staticFiles: fsAdapter.read(["files/**/*", "files/**/.*"]),
+      },
+      {
+        debug: true,
+      }
+    );
 
-    // Configure Gilbert with static files using new constructor pattern
-    const params = {
-      staticFiles: fsAdapter.read("files/**/*"),
-    };
-
-    // Compile through Gilbert
-    await gilbert.compile(params);
-
-    // Pipe Gilbert output to filesystem destination using instance method
-    await gilbert.stream.pipeTo(fsAdapter.write(distDir));
+    // Compile and pipe Gilbert output to filesystem destination
+    await (await gilbert.compile()).pipeTo(fsAdapter.write(distDir));
 
     // Verify output files exist
     const outputFiles = await getAllFiles(distDir);
@@ -120,19 +118,19 @@ describe("Gilbert Static Files Pipeline", () => {
     await rm(emptyOutputDir, { recursive: true, force: true });
     await mkdir(emptyInputDir, { recursive: true });
 
-    const gilbert = new Gilbert({
-      debug: true,
-    });
-
     // Create adapter for empty directory
     const emptyFsAdapter = new GilbertFS({ base: emptyInputDir });
 
-    const params = {
-      staticFiles: emptyFsAdapter.read("**/*"),
-    };
+    const gilbert = new Gilbert(
+      {
+        staticFiles: emptyFsAdapter.read("**/*"),
+      },
+      {
+        debug: true,
+      }
+    );
 
-    await gilbert.compile(params);
-    await gilbert.stream.pipeTo(emptyFsAdapter.write(emptyOutputDir));
+    await (await gilbert.compile()).pipeTo(emptyFsAdapter.write(emptyOutputDir));
 
     const outputFiles = await getAllFiles(emptyOutputDir);
     assert.equal(outputFiles.length, 0, "Should handle empty input gracefully");
@@ -146,16 +144,16 @@ describe("Gilbert Static Files Pipeline", () => {
     // Clean output directory
     await rm(distDir, { recursive: true, force: true });
 
-    const gilbert = new Gilbert({
-      debug: true,
-    });
+    const gilbert = new Gilbert(
+      {
+        staticFiles: fsAdapter.read(["files/**/*", "files/**/.*"]),
+      },
+      {
+        debug: true,
+      }
+    );
 
-    const params = {
-      staticFiles: fsAdapter.read("files/**/*"),
-    };
-
-    await gilbert.compile(params);
-    await gilbert.stream.pipeTo(fsAdapter.write(distDir));
+    await (await gilbert.compile()).pipeTo(fsAdapter.write(distDir));
 
     // Get input and output file structures
     const inputFiles = await getAllFiles(filesDir);
@@ -179,16 +177,16 @@ describe("Gilbert Static Files Pipeline", () => {
     // Clean output directory
     await rm(distDir, { recursive: true, force: true });
 
-    const gilbert = new Gilbert({
-      debug: true,
-    });
+    const gilbert = new Gilbert(
+      {
+        staticFiles: fsAdapter.read(["files/**/*", "files/**/.*"]),
+      },
+      {
+        debug: true,
+      }
+    );
 
-    const params = {
-      staticFiles: fsAdapter.read("files/**/*"),
-    };
-
-    await gilbert.compile(params);
-    await gilbert.stream.pipeTo(fsAdapter.write(distDir));
+    await (await gilbert.compile()).pipeTo(fsAdapter.write(distDir));
 
     // Compare input and output file contents
     const inputFiles = await getAllFiles(filesDir);
@@ -207,17 +205,16 @@ describe("Gilbert Static Files Pipeline", () => {
     await rm(distDir, { recursive: true, force: true });
 
     // Create Gilbert instance for array pattern test
-    const gilbert1 = new Gilbert({
-      debug: true,
-    });
+    const gilbert1 = new Gilbert(
+      {
+        staticFiles: fsAdapter.read(["**/*.hbs", "**/*.json"]),
+      },
+      {
+        debug: true,
+      }
+    );
 
-    // Test array patterns - get only .hbs and .json files
-    const params = {
-      staticFiles: fsAdapter.read(["**/*.hbs", "**/*.json"]),
-    };
-
-    await gilbert1.compile(params);
-    await gilbert1.stream.pipeTo(fsAdapter.write(distDir));
+    await (await gilbert1.compile()).pipeTo(fsAdapter.write(distDir));
 
     // Verify we got both file types
     const outputFiles = await getAllFiles(distDir);
@@ -246,16 +243,16 @@ describe("Gilbert Static Files Pipeline", () => {
     await rm(distDir, { recursive: true, force: true });
 
     // Create new Gilbert instance for single pattern test
-    const gilbert2 = new Gilbert({
-      debug: true,
-    });
+    const gilbert2 = new Gilbert(
+      {
+        staticFiles: fsAdapter.read("**/*.json"),
+      },
+      {
+        debug: true,
+      }
+    );
 
-    const singlePatternParams = {
-      staticFiles: fsAdapter.read("**/*.json"),
-    };
-
-    await gilbert2.compile(singlePatternParams);
-    await gilbert2.stream.pipeTo(fsAdapter.write(distDir));
+    await (await gilbert2.compile()).pipeTo(fsAdapter.write(distDir));
 
     const singlePatternFiles = await getAllFiles(distDir);
 
@@ -263,16 +260,16 @@ describe("Gilbert Static Files Pipeline", () => {
     await rm(distDir, { recursive: true, force: true });
 
     // Create new Gilbert instance for array pattern test
-    const gilbert3 = new Gilbert({
-      debug: true,
-    });
+    const gilbert3 = new Gilbert(
+      {
+        staticFiles: fsAdapter.read(["**/*.json"]),
+      },
+      {
+        debug: true,
+      }
+    );
 
-    const arrayPatternParams = {
-      staticFiles: fsAdapter.read(["**/*.json"]),
-    };
-
-    await gilbert3.compile(arrayPatternParams);
-    await gilbert3.stream.pipeTo(fsAdapter.write(distDir));
+    await (await gilbert3.compile()).pipeTo(fsAdapter.write(distDir));
 
     const arrayPatternFiles = await getAllFiles(distDir);
 

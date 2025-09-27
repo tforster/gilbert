@@ -65,8 +65,15 @@ export default class Glob {
             i += 2; // Skip **
           }
         } else {
-          // Single * - match anything except /
-          result += "[^/]*";
+          // Single * - match anything except / and don't match dotfiles at segment start
+          const atSegmentStart = i === 0 || glob[i - 1] === "/";
+          if (atSegmentStart) {
+            // At start of path segment: exclude files starting with dot
+            result += "[^/.]([^/]*)?"; // First char cannot be dot or slash, then any non-slash chars
+          } else {
+            // In middle of segment: match anything except /
+            result += "[^/]*";
+          }
           i += 1;
         }
       } else if (char === "?") {

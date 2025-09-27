@@ -13,6 +13,7 @@ import { performance } from "perf_hooks";
 // Import Gilbert and adapters
 import Gilbert from "../../services/gilbert/lib/index.js";
 import GilbertFS from "../../services/gilbert-fs/lib/index.js";
+import { marked } from "marked";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -124,13 +125,58 @@ async function runSingleTest(runNumber) {
     const templatesAdapter = new GilbertFS({ base: path.join(testConfig.sourceDir, "templates") });
     const outputAdapter = new GilbertFS();
 
+    // Create markdown processing middleware for blog content
+    const markdownContentMiddleware = async (dataFiles) => {
+      const processedFiles = [];
+
+      for (const file of dataFiles) {
+        const contentsString = await file.toString();
+        const data = JSON.parse(contentsString);
+
+        // Process markdown in content fields (for blog posts)
+        if (data.content && typeof data.content === "string" && data.webProducerKey === "blog-post") {
+          // Add some markdown syntax to test the processing
+          const markdownContent =
+            `# Blog Post: ${data.title}\n\n` +
+            `This is a **bold** statement with *italic* text.\n\n## Original Content\n\n${data.content}\n\n` +
+            `### Key Points\n\n- Important point 1\n- **Critical** point 2\n- *Emphasized* point 3`;
+
+          // Convert markdown to HTML (supports block-level elements)
+          const htmlContent = marked.parse(markdownContent);
+          data.content = htmlContent;
+          data.markdownProcessed = true;
+
+          // Create new GilbertFile with processed data
+          const { default: GilbertFile } = await import("@tforster/gilbert-file");
+          const jsonString = JSON.stringify(data, null, 2);
+          const modifiedFile = new GilbertFile({
+            path: file.path,
+            contents: new ReadableStream({
+              start(controller) {
+                const encoder = new TextEncoder();
+                controller.enqueue(encoder.encode(jsonString));
+                controller.close();
+              },
+            }),
+          });
+
+          processedFiles.push(modifiedFile);
+        } else {
+          // Return file unchanged
+          processedFiles.push(file);
+        }
+      }
+
+      return processedFiles;
+    };
+
     // Create Gilbert instance with new API signature (separate adapters)
     const gilbert = new Gilbert(
       {
         templates: templatesAdapter.read("**/*.hbs"),
         data: {
           source: dataAdapter.read("**/*.json"),
-          // No middleware for now - we'll add it in the next step
+          middleware: [markdownContentMiddleware],
         },
         scripts: [path.resolve(testConfig.sourceDir, "scripts", "main.js")],
         stylesheets: [path.resolve(testConfig.sourceDir, "stylesheets", "main.css")],

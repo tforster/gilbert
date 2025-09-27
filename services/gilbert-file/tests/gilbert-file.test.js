@@ -4,7 +4,7 @@ import path from "node:path";
 
 import GilbertFile from "../lib/index.js";
 
-describe("GilbertFile", () => {
+describe("GilbertFile", { concurrency: 1 }, () => {
   describe("Constructor", () => {
     it("should create a file with minimal options", () => {
       const file = new GilbertFile();

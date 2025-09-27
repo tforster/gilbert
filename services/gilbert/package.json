@@ -43,8 +43,9 @@
     "url": "git+ssh://git@github.com/tforster/webproducer.git"
   },
   "scripts": {
-    "test": "node --test tests/integration.test.js && node --test tests/ultimate.test.js",
-    "test:all": "node --test tests/**/*.test.js"
+    "test": "node --test tests/index.test.js",
+    "test:all": "node --test tests/**/*.test.js",
+    "test:individual": "node --test tests/**/*.test.js"
   },
   "type": "module",
   "version": "1.0.0-beta.5"

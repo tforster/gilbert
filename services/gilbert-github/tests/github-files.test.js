@@ -60,7 +60,7 @@ function createTestAdapter(options = {}) {
   });
 }
 
-describe("Gilbert GitHub Files Pipeline", () => {
+describe("Gilbert GitHub Files Pipeline", { concurrency: 1 }, () => {
   test("should process GitHub files through Gilbert pipeline", async () => {
     // Skip test if no GitHub token available (to avoid rate limits)
     if (!process.env.GITHUB_TOKEN) {

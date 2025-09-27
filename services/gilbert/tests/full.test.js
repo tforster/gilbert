@@ -32,24 +32,23 @@ test("Gilbert full website build", async () => {
   assert.ok(existsSync(srcDir), "Source directory should exist");
 
   // Build entire website with Gilbert as intended - like performance test
-  const config = {
-    source: srcDir,
-    destination: distDir,
-  };
+  const gilbert = new Gilbert(
+    {
+      templates: templatesAdapter.read("**/*.hbs"),
+      data: {
+        source: dataAdapter.read("**/*.json"),
+      },
+      scripts: [resolve(srcDir, "scripts", "main.js")],
+      stylesheets: [resolve(srcDir, "stylesheets", "main.css")],
+      staticFiles: staticAdapter.read("files/**/*"),
+    },
+    {
+      debug: true,
+    }
+  );
 
-  const gilbert = new Gilbert(config);
-
-  // Compile all content together using adapter API
-  await gilbert.compile({
-    uris: dataAdapter.read("**/*.json"),
-    templates: templatesAdapter.read("**/*.hbs"),
-    scripts: [resolve(srcDir, "scripts", "main.js")],
-    stylesheets: [resolve(srcDir, "stylesheets", "main.css")],
-    staticFiles: staticAdapter.read("files/**/*"),
-  });
-
-  // Execute the build using adapter
-  await gilbert.stream.pipeTo(outputAdapter.write(distDir));
+  // Compile and execute the build using adapter
+  await (await gilbert.compile()).pipeTo(outputAdapter.write(distDir));
 
   // Verify website was built
   assert.ok(existsSync(distDir), "Website should be built");

@@ -15,7 +15,7 @@
   "main": "lib/index.js",
   "name": "@tforster/gilbert-github",
   "scripts": {
-    "test": "node --test tests/github-files.test.js"
+    "test": "node --test tests/index.test.js --test-concurrency=1"
   },
   "type": "module",
   "version": "0.1.0"
