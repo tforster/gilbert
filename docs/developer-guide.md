@@ -14,6 +14,7 @@ _Comprehensive technical documentation for Gilbert and all gilbert-\* packages_
   - [Basic Usage](#basic-usage)
 - [Core Architecture](#core-architecture)
   - [Streams-Based Processing](#streams-based-processing)
+  - [Data Middleware System](#data-middleware-system)
   - [Pipeline Architecture](#pipeline-architecture)
   - [Virtual File System](#virtual-file-system)
   - [Build vs. Publish Modes](#build-vs-publish-modes)
@@ -87,7 +88,7 @@ Gilbert is a **streams-based, data-driven static site generator** designed for e
 - **Performance-First**: Targets 200+ pages per second generation with minimal memory footprint
 - **Lean Implementation**: Only essential dependencies, maintaining a small at-rest and in-memory footprint
 
-> **AI Note**: Gilbert's architecture centers on **GilbertFile objects flowing through Web API streams**. All src() methods return `ReadableStream<GilbertFile>`, all pipelines are `TransformStream<GilbertFile, GilbertFile>`, and all dest() methods accept `WritableStream<GilbertFile>`. This unified contract enables seamless composition and runtime portability.
+> **AI Note**: Gilbert's architecture centers on **GilbertFile objects flowing through Web API streams**. All adapter `read()` methods return `ReadableStream<GilbertFile>`, all adapter `write()` methods accept `WritableStream<GilbertFile>`. Pipelines have different patterns: TemplatePipeline returns TransformStreams, StaticFilesPipeline exposes a TransformStream property, while ScriptsPipeline and StylesheetsPipeline return ReadableStreams directly. This unified GilbertFile contract enables seamless composition and runtime portability.
 
 ### Philosophy: The Mind's DOM
 
@@ -105,15 +106,15 @@ Gilbert's template philosophy centers on the "mind's DOM" concept - developers m
 - Clear separation between data transformation and presentation
 - Templates that generate multiple file types (HTML, CSS, JS, XML, etc.)
 
-**Implementation**: Data arrives pre-transformed and ready for template merging. Gilbert does not perform data transformation - this happens upstream in your data pipeline.
+**Implementation**: Gilbert supports optional data middleware for cross-file transformations (pagination, global data objects, etc.) while keeping templates simple. Complex data processing happens in middleware functions before template rendering.
 
 ### Performance-First Architecture
 
-Gilbert targets **200+ pages per second** generation with minimal memory footprint, enabling both rapid local development and real-time serverless publishing.
+Gilbert consistently achieves **sub-200ms build times** for complex projects, enabling both rapid local development and real-time serverless publishing.\n\n**Validated Performance (January 2025):**\n- **Ultimate Test**: 27 files (4 HTML, 1 JS, 1 CSS, 21 static assets) generated in 189ms\n- **Compilation Phase**: 137ms (within 150ms target)\n- **Concurrent Pipelines**: All 4 pipelines running simultaneously without race conditions\n- **Real-World Validation**: StopTheParty website structure with authentic complexity
 
 **Human Context**: This performance level enables sophisticated workflows like webhook-triggered CMS publishing in under a second, making static sites feel dynamic while maintaining the benefits of pre-generated content.
 
-> **AI Note**: Always benchmark changes against the 200 pages/second target. Use `console.time()` around pipeline operations. Profile memory usage with `process.memoryUsage()`. Reject changes that significantly impact performance without corresponding functionality gains. Stream processing prevents memory accumulation during large dataset processing.
+> **AI Note**: Always benchmark changes against the sub-200ms target for complex builds. Use `console.time()` around pipeline operations. Profile memory usage with `process.memoryUsage()`. Reject changes that significantly impact performance without corresponding functionality gains. The 189ms benchmark represents concurrent 4-pipeline execution with real-world project complexity.
 
 **Performance Strategies:**
 
@@ -180,18 +181,28 @@ npx gilbert --data ./content/data.json --theme ./templates/**/*.hbs
 import Gilbert from "@tforster/gilbert";
 import GilbertFS from "@tforster/gilbert-fs";
 
-// Configure Gilbert with your content
-const gilbert = new Gilbert({ relativeRoot: "./src" });
+// Create adapter instances
+const dataAdapter = new GilbertFS({ base: "./src/data" });
+const templatesAdapter = new GilbertFS({ base: "./src/templates" });
+const staticAdapter = new GilbertFS({ base: "./src" });
+const outputAdapter = new GilbertFS();
 
-await gilbert.compile({
-  uris: { data: dataStream, theme: templateStream },
-  scripts: { entryPoints: ["./src/main.js"] },
-  stylesheets: { entryPoints: ["./src/styles.css"] },
-  files: { stream: staticFilesStream },
-});
+// Configure Gilbert with streams-first constructor
+const gilbert = new Gilbert(
+  {
+    templates: templatesAdapter.read("**/*.hbs"),
+    data: { source: dataAdapter.read("**/*.json") },
+    scripts: ["./src/scripts/main.js"],
+    stylesheets: ["./src/stylesheets/main.css"],
+    staticFiles: staticAdapter.read("images/**/*"),
+  },
+  {
+    debug: true,
+  }
+);
 
-// Write output to filesystem
-await gilbert.stream.pipeTo(GilbertFS.dest("./dist"));
+// Compile returns ReadableStream directly - no separate stream access needed
+await gilbert.compile().pipeTo(outputAdapter.write("./dist"));
 ```
 
 ### Project Structure
@@ -262,16 +273,25 @@ npx gilbert \
 
 **Performance Options:**
 
-```bash
-# Disable specific pipelines for faster iteration
-npx gilbert --no-scripts --no-css    # Only templates and static files
-npx gilbert --no-files               # Skip static file copying
+Gilbert supports selective pipeline execution for faster iteration during development. You can disable specific pipelines programmatically by omitting them from the streams configuration:
 
-# Enable CSS autoprefixing (slower but adds vendor prefixes)
-npx gilbert --prefix-css
+```javascript
+// Only templates and static files (no scripts/stylesheets)
+const gilbert = new Gilbert({
+  templates: templatesAdapter.read("**/*.hbs"),
+  data: { source: dataAdapter.read("**/*.json") },
+  staticFiles: staticAdapter.read("images/**/*"),
+  // scripts and stylesheets omitted
+});
+
+// Only templates (fastest for content-only updates)
+const gilbert = new Gilbert({
+  templates: templatesAdapter.read("**/*.hbs"),
+  data: { source: dataAdapter.read("**/*.json") },
+});
 ```
 
-> **AI Note**: Pipeline disabling (`--no-*` flags) implements Gilbert's selective pipeline execution. This is the same mechanism used for Build vs. Publish modes in serverless environments. Understanding these flags helps when implementing custom pipeline configurations programmatically.
+> **AI Note**: Selective pipeline execution enables Build vs. Publish modes in serverless environments. This same pattern is used for optimizing development workflows by processing only changed content types.
 
 **Data Structure Example:**
 
@@ -304,10 +324,10 @@ Gilbert processes content through **Web API streams** (ReadableStream, Transform
 
 **Human Context**: Streams enable processing large datasets without loading everything into memory, critical for scalability and enabling real-time publishing workflows in serverless environments.
 
-> **AI Note**: Gilbert is migrating from Node.js streams to Web Streams for WinterCG compatibility. Always use Web API streams for new code:
+> **AI Note**: Gilbert uses Web API streams for universal runtime compatibility. All pipelines now use Web Streams exclusively:
 >
 > ```javascript
-> // Target pattern (Web Streams) - use for new code
+> // Gilbert pipeline pattern (Web Streams)
 > const pipeline = new TransformStream({
 >   transform(file, controller) {
 >     // Process file
@@ -334,20 +354,82 @@ Gilbert processes content through **Web API streams** (ReadableStream, Transform
 
 **Stream Coordination**: Gilbert uses stream utilities for managing multiple concurrent streams and ensuring proper completion handling.
 
+### Data Middleware System
+
+Gilbert supports optional data middleware for cross-file transformations that require knowledge of the entire dataset. Middleware functions process all data files before template rendering, enabling powerful transformations like pagination, global data objects, and content categorization.
+
+**Human Context**: Many static site features require processing relationships between files - pagination needs total page counts, global navigation requires all page data, and category systems need cross-references. Middleware enables these patterns while maintaining streaming performance for other content types.
+
+> **AI Note**: Data middleware trades some performance (files collected into memory) for powerful cross-file operations. Only the template pipeline uses middleware - static files, scripts, and stylesheets continue streaming at full speed. This architectural decision maintains Gilbert's streaming benefits while enabling complex data transformations.
+
+**Middleware Function Signature:**
+
+```javascript
+const myMiddleware = async (dataFiles) => {
+  // dataFiles: Array<GilbertFile> - all data files loaded into memory
+  const processedFiles = [];
+
+  for (const file of dataFiles) {
+    const data = JSON.parse(await file.toString());
+
+    // Transform data as needed
+    data.processedAt = new Date().toISOString();
+    data.globalSiteData = { totalPages: dataFiles.length };
+
+    processedFiles.push(
+      file.clone({
+        contents: new ReadableStream({
+          start(controller) {
+            const encoder = new TextEncoder();
+            controller.enqueue(encoder.encode(JSON.stringify(data, null, 2)));
+            controller.close();
+          },
+        }),
+      })
+    );
+  }
+
+  return processedFiles;
+};
+```
+
+**Common Use Cases:**
+
+- **Pagination**: Add page counts and navigation metadata
+- **Global Data**: Site-wide navigation, build timestamps, configuration
+- **Content Processing**: Markdown rendering, syntax highlighting
+- **SEO Metadata**: Generate sitemaps, meta descriptions
+- **Categorization**: Tag systems, content grouping, related posts
+
+**Usage Example:**
+
+```javascript
+const gilbert = new Gilbert(
+  {
+    templates: templatesAdapter.read("**/*.hbs"),
+    data: {
+      source: dataAdapter.read("**/*.json"),
+      middleware: [paginationMiddleware, globalDataMiddleware],
+    },
+    staticFiles: staticAdapter.read("**/*"),
+  },
+  { debug: true }
+);
+```
+
 ### Pipeline Architecture
 
 Gilbert uses specialized pipelines for different content types, each optimized for its specific processing requirements.
 
 **Human Context**: Separation of concerns allows each pipeline to optimize for its content type while maintaining a consistent stream interface for composition.
 
-> **AI Note**: All pipelines follow this interface:
+> **AI Note**: Pipelines have different patterns based on their processing requirements:
 >
-> - Constructor: `(options, ...inputStreams)`
-> - `async prep()`: Load and parse dependencies
-> - `async build()`: Process and emit to `this.stream`
-> - Property: `this.stream` - ReadableStream output
+> - **TemplatePipeline**: `constructor(options, dataStream, templatesStream)`, `async build()`, property: `this.stream` (ReadableStream)
+> - **ScriptsPipeline/StylesheetsPipeline**: `constructor(entryPoints, options)`, `async getReadableStream()` (returns ReadableStream directly)
+> - **StaticFilesPipeline**: `constructor()`, property: `this.transformStream` (TransformStream)
 >
-> **Critical Exception - Template Loading**: Unlike other pipelines, TemplatePipeline must load ALL templates into memory during `prep()` before data processing begins. This is because any data URI can reference any template in any order.
+> **Critical Template Loading**: TemplatePipeline must load ALL templates into memory during `build()` before data processing begins. This is because any data URI can reference any template in any order.
 
 **Pipeline Responsibilities:**
 
@@ -388,22 +470,22 @@ async prep() {
 
 ### Virtual File System
 
-Gilbert uses **GilbertFile objects** (custom Vinyl implementation) instead of direct filesystem operations, enabling in-memory processing and easy testing.
+Gilbert uses **GilbertFile objects** instead of direct filesystem operations, enabling in-memory processing and easy testing.
 
 **Human Context**: Virtual files enable processing content from any source (filesystem, APIs, databases) through a consistent interface, making Gilbert highly adaptable to different deployment scenarios.
 
 > **AI Note**:
 >
-> - Always use `Utils.vinyl(options)` factory, never direct GilbertFile constructor
+> - Always use `new GilbertFile(options)` constructor for creating file objects
 > - Set `options.cwd = "/"` for consistent virtual filesystem behavior
 > - Use `path.resolve()` for all path operations
 > - File contents should be Buffer objects for binary compatibility
-> - GilbertFile follows Vinyl conventions: absolute `path`, `base` directory, computed `relative` property
+> - GilbertFile follows standard file conventions: absolute `path`, `base` directory, computed `relative` property
 
 ```javascript
 // Correct file creation pattern
-import { vinyl } from "./Utils.js";
-const file = vinyl({
+import GilbertFile from "@tforster/gilbert-file";
+const file = new GilbertFile({
   path: "/index.html",
   contents: Buffer.from(htmlContent),
   cwd: "/",
@@ -417,7 +499,7 @@ console.log(file.extname); // ".html"
 
 **GilbertFile Properties:**
 
-- **`path`**: Absolute file path (Vinyl convention)
+- **`path`**: Absolute file path
 - **`base`**: Base directory for relative path calculations
 - **`relative`**: Computed relative path (read-only)
 - **`contents`**: File contents as Buffer or ReadableStream
@@ -501,34 +583,45 @@ The main Gilbert compiler engine that orchestrates all pipeline processing and s
 - **Build vs. Publish Modes**: Supports selective pipeline execution for different deployment scenarios
 - **Memory Management**: Optimized for processing large datasets with minimal memory footprint
 
-> **AI Note**: The core engine is transitioning to pure Web API streams. When implementing new features:
+> **AI Note**: The core engine uses pure Web API streams for universal runtime compatibility. When implementing new features:
 >
 > - Use only Web API streams (ReadableStream, TransformStream, WritableStream)
 > - Avoid Node.js-specific APIs to maintain runtime portability
 > - Pipeline coordination happens through stream merging and composition
-> - Main API entry point is `gilbert.compile(config)` method
+> - Main API entry point is `gilbert.compile()` method (returns ReadableStream directly)
 
 **Basic Usage:**
 
 ```javascript
 import Gilbert from "@tforster/gilbert";
+import GilbertFS from "@tforster/gilbert-fs";
 
-const gilbert = new Gilbert({ relativeRoot: "./src" });
+// Create adapter instances
+const dataAdapter = new GilbertFS({ base: "./src/data" });
+const templatesAdapter = new GilbertFS({ base: "./src/templates" });
+const staticAdapter = new GilbertFS({ base: "./src" });
 
-await gilbert.compile({
-  uris: { data: dataStream, theme: templateStream },
-  scripts: { entryPoints: ["./src/main.js"] },
-  stylesheets: { entryPoints: ["./src/main.css"] },
-  files: { stream: staticFilesStream },
-});
+// Configure Gilbert with streams-first constructor
+const gilbert = new Gilbert(
+  {
+    templates: templatesAdapter.read("**/*.hbs"),
+    data: { source: dataAdapter.read("**/*.json") },
+    scripts: ["./src/scripts/main.js"],
+    stylesheets: ["./src/stylesheets/main.css"],
+    staticFiles: staticAdapter.read("images/**/*"),
+  },
+  {
+    debug: true,
+  }
+);
 
-// Access the output stream
-const outputStream = gilbert.stream;
+// compile() returns ReadableStream directly
+const outputStream = await gilbert.compile();
 ```
 
 ### gilbert-file (Virtual File Objects)
 
-Virtual file object implementation providing a lightweight, Web API-compatible alternative to Vinyl.
+Virtual file object implementation providing a lightweight, Web API-compatible file abstraction.
 
 **Package**: `@tforster/gilbert-file`
 
@@ -536,7 +629,6 @@ Virtual file object implementation providing a lightweight, Web API-compatible a
 
 - **Web API Compatible**: Uses Web API streams for runtime-agnostic compatibility
 - **Lightweight Implementation**: No external dependencies except mime library for content-type detection
-- **Vinyl Compatibility**: Maintains compatibility with existing Vinyl-based workflows
 - **Path Utilities**: Built-in Web API-compatible path manipulation utilities
 - **TypeScript Support**: Comprehensive JSDoc type definitions
 
@@ -544,7 +636,7 @@ Virtual file object implementation providing a lightweight, Web API-compatible a
 >
 > - Always use `new GilbertFile(options)` constructor or factory methods
 > - Contents can be Buffer, Uint8Array, or ReadableStream for streaming content
-> - Path properties follow Vinyl conventions: absolute `path`, `base` directory, computed `relative`
+> - Path properties follow standard file conventions: absolute `path`, `base` directory, computed `relative`
 > - Use `clone()` method for file transformations in pipelines
 
 **Usage Examples:**
@@ -587,7 +679,7 @@ Web API WritableStream implementation for writing GilbertFile objects to the loc
 >
 > - Use static methods: `GilbertFS.src(patterns, options)` and `GilbertFS.dest(directory)`
 > - Returns proper Web API streams that integrate with Gilbert engine
-> - Handles Vinyl path conventions: uses `file.relative` for output path calculation
+> - Handles standard path conventions: uses `file.relative` for output path calculation
 > - Graceful error handling for invalid directories and file access issues
 
 **Usage Examples:**
@@ -649,6 +741,9 @@ const dataStream = GilbertGitHub.src({
 
 ### gilbert-cli (Command Line Interface)
 
+> Note
+> This module is very old, stale and not currently function
+
 Command-line interface for Gilbert providing filesystem-based development workflows.
 
 **Package**: `@tforster/gilbert-cli`
@@ -695,9 +790,8 @@ All Gilbert adapters use modern ES6 class constructors with private fields for c
 // Filesystem adapter
 import GilbertFS from "@tforster/gilbert-fs";
 const fsAdapter = new GilbertFS({
-  cwd: "/project/path", // Working directory (default: process.cwd())
-  base: "/project/src", // Base path for relative calculations (default: cwd)
-  strict: true, // Fail fast on errors (default: true in dev, false in prod)
+  base: "/project/src", // Base path for relative calculations (default: process.cwd())
+  strict: true, // Fail fast on errors (default: true)
 });
 
 // GitHub adapter
@@ -722,8 +816,8 @@ const stream = adapter.read(["**/*.hbs", "**/*.json"]);
 
 // Override instance configuration per read operation
 const fsStream = fsAdapter.read("src/**/*", {
-  cwd: "/different/path",
   base: "/different/base",
+  strict: false,
 });
 
 const githubStream = githubAdapter.read("templates/**/*", {
@@ -767,17 +861,23 @@ import GilbertFS from "@tforster/gilbert-fs";
 import Gilbert from "@tforster/gilbert";
 
 // Create adapters with configuration
-const source = new GilbertFS({ base: "./src" });
-const output = new GilbertFS({});
+const dataAdapter = new GilbertFS({ base: "./src/data" });
+const templatesAdapter = new GilbertFS({ base: "./src/templates" });
+const staticAdapter = new GilbertFS({ base: "./src" });
+const outputAdapter = new GilbertFS();
 
-// Build pipeline
-const gilbert = new Gilbert({
-  templates: { source: source.read("templates/**/*.hbs") },
-  static: { source: source.read("static/**/*") },
-});
+// Build pipeline with streams-first constructor
+const gilbert = new Gilbert(
+  {
+    templates: templatesAdapter.read("**/*.hbs"),
+    data: { source: dataAdapter.read("**/*.json") },
+    staticFiles: staticAdapter.read("images/**/*"),
+  },
+  { debug: true }
+);
 
 // Process and output
-await gilbert.stream().pipeTo(output.write("./dist"));
+await gilbert.compile().pipeTo(outputAdapter.write("./dist"));
 ```
 
 **Serverless CMS Workflow:**
@@ -855,7 +955,7 @@ Processes template files using configurable template engines with data injection
 
 ### Scripts Pipeline
 
-Processes JavaScript and TypeScript files with bundling, transpilation, and optimization.
+Processes JavaScript files with bundling, transpilation, and optimization.
 
 **Supported Files:**
 
@@ -876,12 +976,15 @@ Processes JavaScript and TypeScript files with bundling, transpilation, and opti
 **Configuration:**
 
 ```javascript
-const scriptsPipeline = new ScriptsPipeline({
-  target: "es2020",
-  bundle: true,
-  minify: process.env.NODE_ENV === "production",
-  sourceMaps: true,
-});
+const scriptsPipeline = new ScriptsPipeline(
+  ["./src/scripts/main.js"], // Entry points array
+  {
+    target: ["es2020"],
+    bundle: true,
+    minify: process.env.NODE_ENV === "production",
+    sourcemap: true, // Note: esbuild uses 'sourcemap', not 'sourceMaps'
+  }
+);
 ```
 
 **Processing Flow:**
@@ -953,35 +1056,57 @@ Comprehensive API documentation for all Gilbert packages and their exported inte
 
 The main gilbert package provides the core streaming engine and pipeline orchestration.
 
-**gilbert.createPipeline(config)**
+**new Gilbert(streams, options)**
 
-Creates a new Gilbert pipeline with the specified configuration.
+Creates a new Gilbert instance with the specified streams configuration.
 
 ```javascript
-import gilbert from "@tforster/gilbert";
+import Gilbert from "@tforster/gilbert";
+import GilbertFS from "@tforster/gilbert-fs";
 
-// TODO: Update this
+// Create adapters
+const dataAdapter = new GilbertFS({ base: "./src/data" });
+const templatesAdapter = new GilbertFS({ base: "./src/templates" });
+const staticAdapter = new GilbertFS({ base: "./src" });
+
+// Create Gilbert instance
+const gilbert = new Gilbert(
+  {
+    templates: templatesAdapter.read("**/*.hbs"),
+    data: { source: dataAdapter.read("**/*.json") },
+    scripts: ["./src/scripts/main.js"],
+    stylesheets: ["./src/stylesheets/main.css"],
+    staticFiles: staticAdapter.read("images/**/*"),
+  },
+  { debug: true }
+);
 ```
 
 **Parameters:**
 
-**Returns:** `Pipeline` - Configured pipeline instance
+- `streams` (object): Stream configuration object
+  - `templates` (ReadableStream): Handlebars template files
+  - `data` (object): Data configuration with `source` stream and optional `middleware`
+  - `scripts` (string[]): JavaScript entry point paths (optional)
+  - `stylesheets` (string[]): CSS entry point paths (optional)
+  - `staticFiles` (ReadableStream): Static files stream (optional)
+- `options` (object): Gilbert options
+  - `debug` (boolean): Enable debug logging
 
-**gilbert.stream(source, destination, options)**
+**Returns:** `Gilbert` - Gilbert instance
 
-Creates a Web API streams-based processing pipeline.
+**gilbert.compile()**
+
+Compiles all configured content through the appropriate pipelines.
 
 ```javascript
-const stream = gilbert.stream(sourceStream, destinationStream, { data: dataSource });
+// Compile and pipe to output
+await gilbert.compile().pipeTo(outputAdapter.write("./dist"));
 ```
 
-**Parameters:**
+**Parameters:** None
 
-- `source` (ReadableStream): Source file stream
-- `destination` (WritableStream): Destination file stream
-- `options.data` (DataSource): Template context data
-
-**Returns:** `Promise<void>` - Resolves when pipeline completes
+**Returns:** `Promise<ReadableStream<GilbertFile>>` - Stream of generated files
 
 ### GilbertFile API
 
@@ -1107,62 +1232,58 @@ const dataSource = new DataSource(["./data/**/*.json", "./data/**/*.yaml", "http
 **TemplatePipeline Configuration**
 
 ```javascript
-{
-  engines: {
-    handlebars: {
-      helpers: object,      // Custom helper functions
-      partials: string,     // Partials directory path
-      layouts: string       // Layouts directory path
-    },
-    // Similar for mustache, liquid, ejs
-  },
-  data: DataSource,        // Template context data
-  outputExtension: string  // Override output extension
-}
+// TemplatePipeline is instantiated by Gilbert core engine
+// Constructor: new TemplatePipeline(options, dataStream, templatesStream)
+// No direct configuration options - controlled by Gilbert engine
+// Templates are Handlebars files processed automatically
 ```
 
 **ScriptsPipeline Configuration**
 
 ```javascript
+// Constructor: new ScriptsPipeline(entryPoints, esbuildOptions)
+// esbuildOptions passed directly to esbuild.build()
 {
-  target: string,          // ES target version (es2020, es2022, etc.)
-  bundle: boolean,         // Enable module bundling
-  minify: boolean,         // Enable code minification
-  sourceMaps: boolean,     // Generate source maps
-  externals: Array,        // External dependencies to exclude
-  plugins: Array          // Additional build plugins
+  target: ["es2020"],      // ES target version (array format)
+  bundle: true,            // Enable module bundling
+  minify: true,            // Enable code minification
+  sourcemap: true,         // Generate source maps (note: 'sourcemap' not 'sourceMaps')
+  format: "iife",          // Output format
+  write: false,            // Always false for Web API streams
+  metafile: true,          // Generate build metadata
+  treeShaking: true        // Enable dead code elimination
 }
 ```
 
 **StylesheetsPipeline Configuration**
 
 ```javascript
+// Constructor: new StylesheetsPipeline(entryPoints, esbuildOptions)
+// esbuildOptions passed directly to esbuild.build()
 {
-  sass: {
-    includePaths: Array,   // Sass import search paths
-    outputStyle: string    // Sass output style (expanded, compressed)
+  target: ["es2020"],      // Browser compatibility target
+  bundle: true,            // Enable CSS bundling
+  minify: true,            // Enable CSS minification
+  sourcemap: true,         // Generate source maps
+  write: false,            // Always false for Web API streams
+  metafile: true,          // Generate build metadata
+  loader: {                // File type loaders
+    ".eot": "file",
+    ".ttf": "dataurl",
+    ".woff": "file",
+    ".svg": "file"
   },
-  postcss: {
-    plugins: Array         // PostCSS plugin names or instances
-  },
-  extractCritical: boolean // Extract critical CSS
+  autoprefixCss: true      // Enable autoprefixer (custom Gilbert option)
 }
 ```
 
 **StaticFilesPipeline Configuration**
 
 ```javascript
-{
-  imageOptimization: {
-    quality: number,       // JPEG quality (0-100)
-    formats: Array         // Output formats (['webp', 'original'])
-  },
-  versioning: {
-    strategy: string,      // Versioning strategy ('hash', 'timestamp')
-    length: number         // Hash length for hash strategy
-  },
-  copyPattern: string     // Glob pattern for files to copy
-}
+// Constructor: new StaticFilesPipeline()
+// No configuration options - simple pass-through TransformStream
+// Files are copied as-is without modification
+// Exposes: this.transformStream (TransformStream)
 ```
 
 ## Integration Patterns
@@ -1198,21 +1319,27 @@ import { DataSource } from "@tforster/gilbert";
 
 const dataSource = new DataSource(["./data/**/*.json", "./data/**/*.yaml"]);
 
-const developmentPipeline = gilbert.createPipeline({
-  src: "./src",
-  dest: "./dist",
-  data: dataSource,
-  watch: true,
-  pipelines: {
-    templates: { outputExtension: ".html" },
-    scripts: { sourceMaps: true, minify: false },
-    stylesheets: { sourceMaps: true },
-    static: { imageOptimization: false },
-  },
-});
+// Create adapters for development
+const dataAdapter = new GilbertFS({ base: "./data" });
+const templatesAdapter = new GilbertFS({ base: "./src/templates" });
+const staticAdapter = new GilbertFS({ base: "./src" });
+const outputAdapter = new GilbertFS();
 
-// Start development server
-developmentPipeline.watch();
+const gilbert = new Gilbert(
+  {
+    templates: templatesAdapter.read("**/*.hbs"),
+    data: { source: dataAdapter.read("**/*.json") },
+    scripts: ["./src/scripts/main.js"],
+    stylesheets: ["./src/stylesheets/main.css"],
+    staticFiles: staticAdapter.read("images/**/*"),
+  },
+  { debug: true }
+);
+
+// Function to build site
+const buildSite = async () => {
+  await gilbert.compile().pipeTo(outputAdapter.write("./dist"));
+};
 ```
 
 > **AI Note**: Local development patterns emphasize fast rebuilds and debugging:
@@ -1234,7 +1361,8 @@ const watcher = chokidar.watch("./src", {
 
 watcher.on("change", async (path) => {
   console.log(`File changed: ${path}`);
-  await pipeline.rebuild();
+  // Rebuild by running compile again
+  await buildSite();
 });
 ```
 
@@ -1376,27 +1504,24 @@ import { src, dest } from "@tforster/gilbert-fs";
 
 const isProduction = process.env.NODE_ENV === "production";
 
-const pipeline = gilbert.createPipeline({
-  src: "./src",
-  dest: "./dist",
-  data: new DataSource(["./data/**/*.json", process.env.API_ENDPOINT]),
-  pipelines: {
-    templates: true,
-    scripts: {
-      minify: isProduction,
-      sourceMaps: !isProduction,
-    },
-    stylesheets: {
-      extractCritical: isProduction,
-    },
-    static: {
-      imageOptimization: isProduction,
-      versioning: isProduction ? { strategy: "hash" } : false,
-    },
-  },
-});
+// Create adapters
+const dataAdapter = new GilbertFS({ base: "./data" });
+const templatesAdapter = new GilbertFS({ base: "./src/templates" });
+const staticAdapter = new GilbertFS({ base: "./src" });
+const outputAdapter = new GilbertFS();
 
-await pipeline.build();
+const gilbert = new Gilbert(
+  {
+    templates: templatesAdapter.read("**/*.hbs"),
+    data: { source: dataAdapter.read("**/*.json") },
+    scripts: isProduction ? ["./src/scripts/main.js"] : undefined,
+    stylesheets: isProduction ? ["./src/stylesheets/main.css"] : undefined,
+    staticFiles: staticAdapter.read("**/*"),
+  },
+  { debug: !isProduction }
+);
+
+await gilbert.compile().pipeTo(outputAdapter.write("./dist"));
 console.log("Build completed successfully");
 ```
 
@@ -1504,7 +1629,7 @@ Best practices and workflows for developing with Gilbert, including testing, deb
 
 ### Testing Strategy
 
-Comprehensive testing approach for Gilbert projects covering unit tests, integration tests, and end-to-end validation.
+Gilbert uses a comprehensive multi-layered testing strategy that validates individual pipelines, integration scenarios, and real-world performance. All tests achieve 100% pass rates across the monorepo workspace.
 
 **Testing Philosophy:**
 
