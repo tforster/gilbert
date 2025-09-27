@@ -3,11 +3,6 @@
   "webProducerKey": "about",
   "title": "About Us",
   "name": "Gilbert Team",
-  "bio": "We are passionate developers creating modern tooling for the web.",
-  "skills": [
-    "Web API Streams",
-    "Static Site Generation",
-    "JavaScript",
-    "Performance"
-  ]
+  "bio": "# The Gilbert Development Team\n\nWe are **passionate** developers creating modern tooling for the web. Our mission is to revolutionize static site generation using cutting-edge *Web API streams*.\n\n## Our Approach\n\nThe Gilbert project focuses on:\n\n- **Performance**: Leveraging Web API streams for efficient data processing\n- **Modularity**: Clean separation of concerns with pluggable adapters\n- **Developer Experience**: Intuitive APIs that make complex tasks simple\n- **Modern Standards**: Built for the latest web platform capabilities\n\n## Technology Stack\n\n| Technology | Purpose | Status |\n|------------|---------|--------|\n| ReadableStream | Core data flow | ✅ Implemented |\n| TransformStream | Data processing | ✅ Implemented |\n| WritableStream | Output generation | ✅ Implemented |\n| ESBuild | Script bundling | ✅ Implemented |\n| Handlebars | Template engine | ✅ Implemented |\n\n### Key Features\n\n1. **Stream-based Architecture**: All data flows through Web API streams\n2. **Middleware Support**: Extensible data transformation pipeline\n3. **Multi-format Output**: HTML, CSS, JS, and static files\n4. **Developer Tools**: Built-in debugging and performance monitoring\n\n> \"Gilbert represents the next generation of static site generators, built from the ground up for modern web development.\" - *Core Team*",
+  "skills": ["Web API Streams", "Static Site Generation", "JavaScript", "Performance"]
 }

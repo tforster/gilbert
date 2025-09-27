@@ -789,5 +789,201 @@ describe("GilbertFile", () => {
       assert.strictEqual(source.path, "/src/index.ts");
       assert.strictEqual(new TextDecoder().decode(source.contents), "const x: number = 42;");
     });
+
+    it("should create independent streams when cloning ReadableStream contents", async () => {
+      // Create a file with ReadableStream contents
+      const testData = "Hello, streaming world!";
+      const original = new GilbertFile({
+        path: "/test/stream.txt",
+        contents: new ReadableStream({
+          start(controller) {
+            const encoder = new TextEncoder();
+            controller.enqueue(encoder.encode(testData));
+            controller.close();
+          },
+        }),
+      });
+
+      // Clone without providing new contents (should use tee())
+      const cloned = original.clone({ path: "/test/stream-copy.txt" });
+
+      // Both files should have independent streams
+      assert.notStrictEqual(cloned.contents, original.contents, "Cloned stream should be different object");
+      assert.strictEqual(cloned.isStream(), true, "Cloned file should still be a stream");
+      assert.strictEqual(original.isStream(), true, "Original file should still be a stream");
+
+      // Both streams should be readable independently
+      const originalContent = await original.toString();
+      const clonedContent = await cloned.toString();
+
+      assert.strictEqual(originalContent, testData, "Original stream should be readable");
+      assert.strictEqual(clonedContent, testData, "Cloned stream should be readable");
+      assert.strictEqual(originalContent, clonedContent, "Both streams should have same content");
+
+      // Verify path override worked
+      assert.strictEqual(cloned.path, "/test/stream-copy.txt");
+      assert.strictEqual(original.path, "/test/stream.txt");
+    });
+
+    it("should handle concurrent reads from cloned streams", async () => {
+      // Create a file with larger ReadableStream contents
+      const testData = "A".repeat(1000); // 1KB of data
+      const original = new GilbertFile({
+        path: "/test/large-stream.txt",
+        contents: new ReadableStream({
+          start(controller) {
+            const encoder = new TextEncoder();
+            // Simulate chunked data
+            const chunkSize = 100;
+            for (let i = 0; i < testData.length; i += chunkSize) {
+              controller.enqueue(encoder.encode(testData.slice(i, i + chunkSize)));
+            }
+            controller.close();
+          },
+        }),
+      });
+
+      // Clone the file
+      const cloned = original.clone();
+
+      // Read both streams concurrently
+      const [originalContent, clonedContent] = await Promise.all([original.toString(), cloned.toString()]);
+
+      // Both should have the complete content
+      assert.strictEqual(originalContent.length, 1000, "Original should have full content");
+      assert.strictEqual(clonedContent.length, 1000, "Clone should have full content");
+      assert.strictEqual(originalContent, testData, "Original content should match");
+      assert.strictEqual(clonedContent, testData, "Cloned content should match");
+    });
+
+    it("should not interfere with stream when overriding contents in clone", () => {
+      // Create original with stream
+      const original = new GilbertFile({
+        path: "/test/original-stream.txt",
+        contents: new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode("original"));
+            controller.close();
+          },
+        }),
+      });
+
+      // Clone with new contents (should not tee original stream)
+      const newContents = new Uint8Array(Buffer.from("replacement"));
+      const cloned = original.clone({ contents: newContents });
+
+      // Original should still have its stream, clone should have the new contents
+      assert.strictEqual(original.isStream(), true, "Original should still be a stream");
+      assert.strictEqual(cloned.isBuffer(), true, "Clone should be a buffer");
+      assert.strictEqual(cloned.contents, newContents, "Clone should have the override contents");
+    });
+  });
+
+  describe("Idempotent Stream Operations", () => {
+    it("should preserve stream after toString() calls", async () => {
+      const testData = "Hello, idempotent world!";
+      const file = new GilbertFile({
+        path: "/test/idempotent.txt",
+        contents: new ReadableStream({
+          start(controller) {
+            const encoder = new TextEncoder();
+            controller.enqueue(encoder.encode(testData));
+            controller.close();
+          },
+        }),
+      });
+
+      // Call toString() multiple times
+      const result1 = await file.toString();
+      const result2 = await file.toString();
+      const result3 = await file.toString();
+
+      // All results should be identical
+      assert.strictEqual(result1, testData, "First toString() should work");
+      assert.strictEqual(result2, testData, "Second toString() should work");
+      assert.strictEqual(result3, testData, "Third toString() should work");
+
+      // File should still be a stream
+      assert.strictEqual(file.isStream(), true, "File should still be a stream");
+    });
+
+    it("should preserve stream after toBuffer() calls", async () => {
+      const testData = "Buffer test data";
+      const expectedBuffer = new TextEncoder().encode(testData);
+      const file = new GilbertFile({
+        path: "/test/buffer-idempotent.txt",
+        contents: new ReadableStream({
+          start(controller) {
+            controller.enqueue(expectedBuffer);
+            controller.close();
+          },
+        }),
+      });
+
+      // Call toBuffer() multiple times
+      const buffer1 = await file.toBuffer();
+      const buffer2 = await file.toBuffer();
+
+      // All results should be identical
+      assert.deepStrictEqual(buffer1, expectedBuffer, "First toBuffer() should work");
+      assert.deepStrictEqual(buffer2, expectedBuffer, "Second toBuffer() should work");
+
+      // File should still be a stream
+      assert.strictEqual(file.isStream(), true, "File should still be a stream");
+    });
+
+    it("should allow mixed toString() and toBuffer() calls", async () => {
+      const testData = "Mixed operations test";
+      const expectedBuffer = new TextEncoder().encode(testData);
+      const file = new GilbertFile({
+        path: "/test/mixed-ops.txt",
+        contents: new ReadableStream({
+          start(controller) {
+            controller.enqueue(expectedBuffer);
+            controller.close();
+          },
+        }),
+      });
+
+      // Alternate between toString() and toBuffer() calls
+      const string1 = await file.toString();
+      const buffer1 = await file.toBuffer();
+      const string2 = await file.toString();
+      const buffer2 = await file.toBuffer();
+
+      // All results should be correct
+      assert.strictEqual(string1, testData);
+      assert.strictEqual(string2, testData);
+      assert.deepStrictEqual(buffer1, expectedBuffer);
+      assert.deepStrictEqual(buffer2, expectedBuffer);
+
+      // File should still be a stream
+      assert.strictEqual(file.isStream(), true, "File should still be a stream after mixed operations");
+    });
+
+    it("should work with concurrent toString() calls", async () => {
+      const testData = "Concurrent test data";
+      const file = new GilbertFile({
+        path: "/test/concurrent.txt",
+        contents: new ReadableStream({
+          start(controller) {
+            const encoder = new TextEncoder();
+            controller.enqueue(encoder.encode(testData));
+            controller.close();
+          },
+        }),
+      });
+
+      // Make concurrent toString() calls
+      const [result1, result2, result3] = await Promise.all([file.toString(), file.toString(), file.toString()]);
+
+      // All results should be identical
+      assert.strictEqual(result1, testData);
+      assert.strictEqual(result2, testData);
+      assert.strictEqual(result3, testData);
+
+      // File should still be a stream
+      assert.strictEqual(file.isStream(), true, "File should still be a stream after concurrent operations");
+    });
   });
 });

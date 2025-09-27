@@ -1106,3 +1106,50 @@ const uploadStream = github.write("github-config");
 ```
 
 This standardization enables seamless adapter swapping in Gilbert pipelines while maintaining backward compatibility and providing clear upgrade paths for legacy usage patterns.
+
+## 2025-09-26
+
+Completed major Gilbert API refactoring implementation with comprehensive middleware framework and resolved critical GilbertFile stream handling issues:
+
+### Gilbert API Refactoring Achievement
+
+- **Constructor API Migration**: Successfully implemented new constructor signature `new Gilbert(streams, config)` replacing `new Gilbert(config)` across all core components
+- **Data Middleware Framework**: Created array-based data transformation pipeline enabling sophisticated content processing through `data.middleware: [middlewareFunction]` configuration
+- **Comprehensive Test Coverage**: Implemented 3-test middleware suite with complex markdown processing validation, all tests consistently passing
+
+### Critical GilbertFile Architecture Fixes
+
+- **Stream Independence Resolution**: Fixed fundamental issue where GilbertFile.clone() was sharing ReadableStream references causing locked stream errors and "Unexpected end of JSON input" failures
+- **ReadableStream.tee() Implementation**: Implemented proper stream tee operations in clone(), toString(), and toBuffer() methods to create independent streams while preserving originals
+- **Idempotent Operations**: Made toString() and toBuffer() idempotent operations that can be called multiple times without consuming the original stream - critical for reusable components
+- **Regression Prevention**: Added comprehensive test coverage (102 gilbert-file tests passing) including stream independence tests, concurrent operation validation, and idempotent behavior verification
+
+### Advanced Markdown Processing Framework
+
+- **Complex Content Support**: Implemented full markdown-to-HTML conversion supporting headings, paragraphs, lists (ordered/unordered), tables, blockquotes, and inline formatting
+- **Template Integration**: Enhanced Handlebars templates with `{{{bio}}}` triple-brace syntax for raw HTML rendering, preventing markdown HTML from being escaped
+- **Rich Content Validation**: Test suite validates conversion of complex markdown including `# headings`, `**bold**`, `*italic*`, `- lists`, tables with headers/data, and `> blockquotes`
+- **Production-Ready Pipeline**: Middleware processes GilbertFile objects seamlessly with proper JSON serialization and stream handling
+
+### Testing Infrastructure Excellence
+
+- **Standard Test Patterns**: Updated middleware.test.js to follow established Gilbert testing conventions with single `dist/` directory and `cleanDist()` function
+- **Cross-Pipeline Consistency**: All tests now use consistent path handling (`path.join(__dirname, "dist")`) and proper cleanup mechanisms
+- **Rich Test Scenarios**: Complex test cases including markdown tables, technology stacks, feature lists, and blockquotes demonstrating real-world usage patterns
+- **Error Resolution**: Completely eliminated "Unexpected end of JSON input" errors through proper stream handling architecture
+
+### Technical Breakthroughs
+
+- **Web API Streams Architecture**: All processing maintains Web API streams compatibility for universal runtime support
+- **Stream Lifecycle Management**: Proper stream tee operations ensure original streams remain available while creating independent copies for processing
+- **Middleware Extensibility**: Framework supports arbitrary data transformations enabling content management, internationalization, SEO optimization, and complex content workflows
+- **Performance Optimization**: Stream-based processing maintains high performance while supporting sophisticated content transformations
+
+### Test Results Summary
+
+- **GilbertFile Tests**: 102/102 tests passing including new stream independence and idempotent operation tests
+- **Middleware Tests**: 3/3 tests passing with complex markdown processing validation
+- **Architecture Validation**: All fundamental stream handling issues resolved, JSON parsing errors eliminated
+- **Content Processing**: Rich markdown content (headings, lists, tables, blockquotes) converting correctly to semantic HTML
+
+The Gilbert API refactoring is now production-ready with a robust middleware framework, resolved stream handling architecture, and comprehensive test coverage. Tomorrow's session will focus on migrating all remaining Gilbert tests to use the new API signature across the monorepo.

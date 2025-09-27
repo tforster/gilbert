@@ -18,11 +18,18 @@ process.on("uncaughtException", (err) => {
 });
 
 /**
+ * @typedef {Function} DataMiddleware
+ * @param {Array} files - Array of data files
+ * @returns {Array} Transformed files array
+ */
+
+/**
  * @description: The entry point of the Gilbert compiler engine
  * @class Gilbert
  */
 class Gilbert {
   // Private properties
+  #streams;
   #options;
   #mergeController;
   #activePipelines;
@@ -30,15 +37,17 @@ class Gilbert {
   /**
    * Creates an instance of Gilbert.
    * @date 2024-08-25
-   * @param {object} options: Hash of runtime options including the relative root of the project and the debug flag.
+   * @param {object} streams - Stream configuration object with pipelines and sources
+   * @param {object} config - Processing configuration (debug, minify, etc.)
    * @memberof Gilbert
    */
-  constructor(options) {
+  constructor(streams, config = {}) {
     // .produce was renamed to .compile. This is a temporary alias to maintain backwards compatibility.
     this.produce = this.compile;
 
-    // Initialise private properties
-    this.#options = options;
+    // Store streams and configuration separately
+    this.#streams = streams || {};
+    this.#options = config;
 
     // Public properties exposed to the calling application
     this.resources = 0;
@@ -184,21 +193,66 @@ class Gilbert {
   }
 
   /**
-   * @description: Compiles the contents from the various sources into a single stream.
-   * @param {object} params:  Parameters describing the specifics of the pipelines as provided by the consuming application.
-   * @memberof Gilbert
+   * Process data middleware by collecting all data files, applying middleware, and returning a stream
+   * @param {ReadableStream} dataStream - The source data stream
+   * @param {DataMiddleware[]} middlewareArray - Array of middleware functions
+   * @returns {Promise<ReadableStream>} Processed data stream
    */
-  async compile(params) {
-    const pipelinePromises = [];
+  async #processDataMiddleware(dataStream, middlewareArray) {
+    if (!middlewareArray?.length) return dataStream;
 
-    if (!params) {
-      throw new Error("No parameters provided to compile method");
+    // Collect all data files into memory
+    const files = [];
+    const collector = new WritableStream({
+      write(file) {
+        files.push(file);
+      },
+    });
+    await dataStream.pipeTo(collector);
+
+    // Apply middleware functions in sequence
+    let processedFiles = files;
+    for (const middleware of middlewareArray) {
+      processedFiles = await middleware(processedFiles);
     }
 
+    // Convert back to stream
+    return new ReadableStream({
+      start(controller) {
+        for (const file of processedFiles) {
+          controller.enqueue(file);
+        }
+        controller.close();
+      },
+    });
+  }
+
+  /**
+   * @description: Compiles the contents from the various sources into a single stream.
+   * @returns {Promise<ReadableStream>} The Gilbert output stream
+   * @memberof Gilbert
+   */
+  async compile() {
+    const pipelinePromises = [];
+
+    // Reset stream coordinator for each compile
+    this.#initializeMergeStream();
+
     // For compiling data and templates, both streams must be present.
-    if (params.uris && params.templates) {
+    if (this.#streams.templates && (this.#streams.data || this.#streams.uris)) {
+      let dataStream;
+
+      // Handle both new data configuration and legacy uris
+      if (this.#streams.data) {
+        // New data configuration with middleware support
+        dataStream = await this.#processDataMiddleware(this.#streams.data.source, this.#streams.data.middleware);
+      } else {
+        // Legacy uris configuration (backward compatibility)
+        dataStream = this.#streams.uris;
+      }
+
       // Create a new instance of the TemplatePipeline
-      const templatePipeline = new TemplatePipeline(this.#options, params.uris, params.templates);
+      const templatePipeline = new TemplatePipeline(this.#options, dataStream, this.#streams.templates);
 
       // Start building files into the stream
       await templatePipeline.build();
@@ -212,11 +266,12 @@ class Gilbert {
     }
 
     // Static files processing
-    if (params.staticFiles) {
+    if (this.#streams.static || this.#streams.staticFiles) {
       const staticFilesPipeline = new StaticFilesPipeline();
 
-      // Connect static files stream through the pipeline to our merge coordinator
-      const staticReader = params.staticFiles.pipeThrough(staticFilesPipeline.transformStream);
+      // Handle both new 'static' and legacy 'staticFiles' names
+      const staticStream = this.#streams.static || this.#streams.staticFiles;
+      const staticReader = staticStream.pipeThrough(staticFilesPipeline.transformStream);
       pipelinePromises.push(this.#processPipeline(staticReader, "StaticFiles"));
 
       if (this.#options.debug) {
@@ -225,8 +280,8 @@ class Gilbert {
     }
 
     // Scripts (JavaScript bundling and optimization)
-    if (params.scripts) {
-      const scriptsPipeline = new ScriptsPipeline(params.scripts, params.scriptsOptions);
+    if (this.#streams.scripts) {
+      const scriptsPipeline = new ScriptsPipeline(this.#streams.scripts, this.#streams.scriptsOptions);
       const scriptsStream = await scriptsPipeline.getReadableStream();
 
       pipelinePromises.push(this.#processPipeline(scriptsStream, "Scripts"));
@@ -237,8 +292,8 @@ class Gilbert {
     }
 
     // Stylesheets (CSS bundling and optimization)
-    if (params.stylesheets) {
-      const stylesheetsPipeline = new StylesheetsPipeline(params.stylesheets, params.stylesheetsOptions);
+    if (this.#streams.stylesheets) {
+      const stylesheetsPipeline = new StylesheetsPipeline(this.#streams.stylesheets, this.#streams.stylesheetsOptions);
       const stylesheetsStream = await stylesheetsPipeline.getReadableStream();
 
       pipelinePromises.push(this.#processPipeline(stylesheetsStream, "Stylesheets"));
@@ -251,36 +306,36 @@ class Gilbert {
     // Start processing all pipelines concurrently
     // Wait for all pipelines to complete before closing the stream
     if (pipelinePromises.length > 0) {
-      try {
-        await Promise.all(pipelinePromises);
-
-        // All pipelines completed successfully, close the merge stream
-        if (this.#mergeController) {
-          try {
-            this.#mergeController.close();
-            if (this.#options.debug) {
-              logger.debug(`MergeStream ended: ${this.resources} resources, ${this.size} bytes`);
-            }
-          } catch {
-            // Controller might already be closed, ignore the error
-            if (this.#options.debug) {
-              logger.debug("MergeStream already closed");
+      // Start all pipelines in the background
+      Promise.all(pipelinePromises)
+        .then(() => {
+          // All pipelines completed successfully, close the merge stream
+          if (this.#mergeController) {
+            try {
+              this.#mergeController.close();
+              if (this.#options.debug) {
+                logger.debug(`MergeStream ended: ${this.resources} resources, ${this.size} bytes`);
+              }
+            } catch {
+              // Controller might already be closed, ignore the error
+              if (this.#options.debug) {
+                logger.debug("MergeStream already closed");
+              }
             }
           }
-        }
-      } catch (error) {
-        // Close the stream on error too
-        if (this.#mergeController) {
-          try {
-            this.#mergeController.close();
-          } catch {
-            // Ignore close errors
+        })
+        .catch((error) => {
+          // Close the stream on error too
+          if (this.#mergeController) {
+            try {
+              this.#mergeController.close();
+            } catch {
+              // Ignore close errors
+            }
           }
-        }
-        // eslint-disable-next-line no-console
-        console.error("Pipeline processing failed:", error);
-        throw error;
-      }
+          // eslint-disable-next-line no-console
+          console.error("Pipeline processing failed:", error);
+        });
     } else {
       // No pipelines to process, close immediately
       if (this.#mergeController) {
@@ -291,6 +346,9 @@ class Gilbert {
         }
       }
     }
+
+    // Return the stream directly
+    return this.stream;
   }
 }
 

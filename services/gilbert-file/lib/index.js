@@ -532,7 +532,11 @@ export default class GilbertFile {
     }
 
     if (this.isStream()) {
-      const reader = /** @type {ReadableStream} */ (this.contents).getReader();
+      // Use tee() to preserve the original stream while reading from a copy
+      const [preservedStream, readingStream] = /** @type {ReadableStream} */ (this.contents).tee();
+      this.#contents = preservedStream; // Preserve original stream
+
+      const reader = readingStream.getReader();
       const chunks = [];
 
       try {
@@ -578,7 +582,11 @@ export default class GilbertFile {
     }
 
     if (this.isStream()) {
-      const reader = /** @type {ReadableStream} */ (this.contents).getReader();
+      // Use tee() to preserve the original stream while reading from a copy
+      const [preservedStream, readingStream] = /** @type {ReadableStream} */ (this.contents).tee();
+      this.#contents = preservedStream; // Preserve original stream
+
+      const reader = readingStream.getReader();
       const chunks = [];
 
       try {
@@ -623,12 +631,21 @@ export default class GilbertFile {
    * @memberof GilbertFile
    */
   clone(overrides = {}) {
+    let contents = this.contents;
+
+    // Handle ReadableStream cloning - if no override provided, we need to tee the stream
+    if (this.contents instanceof ReadableStream && !overrides.contents) {
+      const [stream1, stream2] = this.contents.tee();
+      this.#contents = stream1; // Update original to use first teed stream
+      contents = stream2; // Clone gets second teed stream
+    }
+
     return new GilbertFile({
       // Copy all current properties
       path: this.path,
       base: this.base,
       cwd: this.cwd,
-      contents: this.contents,
+      contents: contents,
       stat: this.stat,
       contentType: this.contentType,
       // Apply any overrides
