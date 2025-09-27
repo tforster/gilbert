@@ -11,8 +11,8 @@ import { fileURLToPath } from "url";
 import { performance } from "perf_hooks";
 
 // Import Gilbert and adapters
-import Gilbert from "@tforster/gilbert";
-import GilbertFS from "@tforster/gilbert-fs";
+import Gilbert from "../../services/gilbert/lib/index.js";
+import GilbertFS from "../../services/gilbert-fs/lib/index.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -119,25 +119,30 @@ async function runSingleTest(runNumber) {
   const startTime = performance.now();
 
   try {
-    // Create Gilbert instance with configuration
-    const config = {
-      source: testConfig.sourceDir,
-      destination: testConfig.distDir,
-    };
+    // Create GilbertFS adapter instances like the working middleware test
+    const dataAdapter = new GilbertFS({ base: path.join(testConfig.sourceDir, "data") });
+    const templatesAdapter = new GilbertFS({ base: path.join(testConfig.sourceDir, "templates") });
+    const outputAdapter = new GilbertFS();
 
-    const gilbert = new Gilbert(config);
+    // Create Gilbert instance with new API signature (separate adapters)
+    const gilbert = new Gilbert(
+      {
+        templates: templatesAdapter.read("**/*.hbs"),
+        data: {
+          source: dataAdapter.read("**/*.json"),
+          // No middleware for now - we'll add it in the next step
+        },
+        scripts: [path.resolve(testConfig.sourceDir, "scripts", "main.js")],
+        stylesheets: [path.resolve(testConfig.sourceDir, "stylesheets", "main.css")],
+        // Remove staticFiles since the files/ directory doesn't exist
+      },
+      {
+        debug: false, // Disable debug for performance testing
+      }
+    );
 
-    // Compile all content (no console.log between performance measurements)
-    await gilbert.compile({
-      uris: GilbertFS.src("**/*.json", { base: path.resolve(testConfig.sourceDir, "data") }),
-      templates: GilbertFS.src("**/*.hbs", { base: path.resolve(testConfig.sourceDir, "templates") }),
-      scripts: [path.resolve(testConfig.sourceDir, "scripts", "main.js")],
-      stylesheets: [path.resolve(testConfig.sourceDir, "stylesheets", "main.css")],
-      staticFiles: GilbertFS.src("files/**/*", { base: testConfig.sourceDir }),
-    });
-
-    // Execute the build using pipeTo (no console.log between performance measurements)
-    await gilbert.stream.pipeTo(GilbertFS.dest(testConfig.distDir));
+    // Compile and execute the build using new API (compile returns stream directly)
+    await (await gilbert.compile()).pipeTo(outputAdapter.write(testConfig.distDir));
 
     const endTime = performance.now();
     const duration = endTime - startTime;
