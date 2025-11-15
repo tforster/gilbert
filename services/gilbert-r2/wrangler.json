@@ -1,0 +1,11 @@
+{
+  "compatibility_date": "2024-11-01",
+  "main": "tests/integration-worker.js",
+  "name": "gilbert-r2-integration-test",
+  "r2_buckets": [
+    {
+      "binding": "TEST_BUCKET",
+      "bucket_name": "gilbert-r2-test-bucket"
+    }
+  ]
+}

@@ -11,6 +11,9 @@ tests/performance/src/data/
 tests/performance/src/files/
 tests/performance/data.json
 
+# Wrangler local development cache and state
+.wrangler/
+
 # Generated documentation
 
 ### Misc. Tooling ###
