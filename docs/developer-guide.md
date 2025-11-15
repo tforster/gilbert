@@ -4,78 +4,80 @@ _Comprehensive technical documentation for Gilbert and all gilbert-\* packages_
 
 ## Table of Contents <!-- omit in toc -->
 
-- [About Gilbert](#about-gilbert)
-  - [Philosophy: The Mind's DOM](#philosophy-the-minds-dom)
-  - [Performance-First Architecture](#performance-first-architecture)
-  - [Runtime-Agnostic Design](#runtime-agnostic-design)
-- [Getting Started](#getting-started)
-  - [Quick Start](#quick-start)
-  - [Project Structure](#project-structure)
-  - [Basic Usage](#basic-usage)
-- [Core Architecture](#core-architecture)
-  - [Streams-Based Processing](#streams-based-processing)
-  - [Data Middleware System](#data-middleware-system)
-  - [Pipeline Architecture](#pipeline-architecture)
-  - [Virtual File System](#virtual-file-system)
-  - [Build vs. Publish Modes](#build-vs-publish-modes)
-    - [Building (Full Pipeline)](#building-full-pipeline)
-    - [Publishing (Content-Only Pipeline)](#publishing-content-only-pipeline)
-    - [Design Rationale](#design-rationale)
-- [Gilbert Packages](#gilbert-packages)
-  - [gilbert (Core Engine)](#gilbert-core-engine)
-  - [gilbert-file (Virtual File Objects)](#gilbert-file-virtual-file-objects)
-  - [gilbert-fs (Filesystem Integration)](#gilbert-fs-filesystem-integration)
-  - [gilbert-github (GitHub Integration)](#gilbert-github-github-integration)
-  - [gilbert-cli (Command Line Interface)](#gilbert-cli-command-line-interface)
-- [Adapter Interface Specification](#adapter-interface-specification)
-  - [Constructor Pattern](#constructor-pattern)
-  - [Read Method](#read-method)
-  - [Write Method](#write-method)
-  - [Usage Examples](#usage-examples)
-- [Pipelines Reference](#pipelines-reference)
-  - [Template Pipeline](#template-pipeline)
-  - [Scripts Pipeline](#scripts-pipeline)
-  - [Stylesheets Pipeline](#stylesheets-pipeline)
-  - [Static Files Pipeline](#static-files-pipeline)
-- [API Reference](#api-reference)
-  - [Core Engine API](#core-engine-api)
-  - [GilbertFile API](#gilbertfile-api)
-  - [Filesystem Integration API](#filesystem-integration-api)
-  - [GitHub Integration API](#github-integration-api)
-  - [Data Source API](#data-source-api)
-  - [Pipeline Configuration API](#pipeline-configuration-api)
-- [Integration Patterns](#integration-patterns)
-  - [Local Development Environment](#local-development-environment)
-  - [Serverless Deployment](#serverless-deployment)
-  - [CI/CD Integration](#cicd-integration)
-  - [Headless CMS Integration](#headless-cms-integration)
-- [Migration Guides](#migration-guides)
-- [Development Workflows](#development-workflows)
-  - [Testing Strategy](#testing-strategy)
-  - [Mono-repo Development](#mono-repo-development)
-  - [Debugging Techniques](#debugging-techniques)
-  - [Performance Optimization](#performance-optimization)
-- [Deployment Guide](#deployment-guide)
-  - [Static Hosting Platforms](#static-hosting-platforms)
-  - [Cloud Platform Deployment](#cloud-platform-deployment)
-  - [Serverless Deployment](#serverless-deployment-1)
-  - [Container Deployment](#container-deployment)
-- [Troubleshooting](#troubleshooting)
-  - [Common Build Issues](#common-build-issues)
-  - [Performance Issues](#performance-issues)
-  - [Data Flow Debugging](#data-flow-debugging)
-  - [Error Recovery Strategies](#error-recovery-strategies)
-- [Advanced Topics](#advanced-topics)
-  - [Custom Pipeline Development](#custom-pipeline-development)
-  - [Stream Composition Patterns](#stream-composition-patterns)
-  - [Plugin Architecture](#plugin-architecture)
-- [Contributing](#contributing)
-  - [Development Setup](#development-setup)
-  - [Coding Standards](#coding-standards)
-  - [Submitting Changes](#submitting-changes)
-- [Glossary](#glossary)
+- [1. About Gilbert](#1-about-gilbert)
+  - [1.1. Philosophy: The Mind's DOM](#11-philosophy-the-minds-dom)
+  - [1.2. Performance-First Architecture](#12-performance-first-architecture)
+  - [1.3. Runtime-Agnostic Design](#13-runtime-agnostic-design)
+- [2. Getting Started](#2-getting-started)
+  - [2.1. Quick Start](#21-quick-start)
+  - [2.2. Project Structure](#22-project-structure)
+  - [2.3. Basic Usage](#23-basic-usage)
+- [3. Core Architecture](#3-core-architecture)
+  - [3.1. Streams-Based Processing](#31-streams-based-processing)
+  - [3.2. Data Middleware System](#32-data-middleware-system)
+  - [3.3. Pipeline Architecture](#33-pipeline-architecture)
+  - [3.4. Virtual File System](#34-virtual-file-system)
+  - [3.5. Build vs. Publish Modes](#35-build-vs-publish-modes)
+    - [3.5.1. Building (Full Pipeline)](#351-building-full-pipeline)
+    - [3.5.2. Publishing (Content-Only Pipeline)](#352-publishing-content-only-pipeline)
+    - [3.5.3. Design Rationale](#353-design-rationale)
+- [4. Gilbert Packages](#4-gilbert-packages)
+  - [4.1. gilbert (Core Engine)](#41-gilbert-core-engine)
+  - [4.2. gilbert-file (Virtual File Objects)](#42-gilbert-file-virtual-file-objects)
+  - [4.3. gilbert-fs (Filesystem Integration)](#43-gilbert-fs-filesystem-integration)
+  - [4.4. gilbert-github (GitHub Integration)](#44-gilbert-github-github-integration)
+  - [4.5. gilbert-cli (Command Line Interface)](#45-gilbert-cli-command-line-interface)
+- [5. Adapter Interface Specification](#5-adapter-interface-specification)
+  - [5.1. Constructor Pattern](#51-constructor-pattern)
+  - [5.2. Read Method](#52-read-method)
+  - [5.3. Write Method](#53-write-method)
+  - [5.4. Usage Examples](#54-usage-examples)
+- [6. Pipelines Reference](#6-pipelines-reference)
+  - [6.1. Template Pipeline](#61-template-pipeline)
+  - [6.2. Scripts Pipeline](#62-scripts-pipeline)
+  - [6.3. Stylesheets Pipeline](#63-stylesheets-pipeline)
+  - [6.4. Static Files Pipeline](#64-static-files-pipeline)
+- [7. API Reference](#7-api-reference)
+  - [7.1. Core Engine API](#71-core-engine-api)
+  - [7.2. GilbertFile API](#72-gilbertfile-api)
+  - [7.3. Filesystem Integration API](#73-filesystem-integration-api)
+  - [7.4. GitHub Integration API](#74-github-integration-api)
+  - [7.5. Data Source API](#75-data-source-api)
+  - [7.6. Pipeline Configuration API](#76-pipeline-configuration-api)
+- [8. Integration Patterns](#8-integration-patterns)
+  - [8.1. Local Development Environment](#81-local-development-environment)
+  - [8.2. Serverless Deployment](#82-serverless-deployment)
+  - [8.3. CI/CD Integration](#83-cicd-integration)
+  - [8.4. Headless CMS Integration](#84-headless-cms-integration)
+- [9. Migration Guides](#9-migration-guides)
+- [10. Development Workflows](#10-development-workflows)
+  - [10.1. Testing Strategy](#101-testing-strategy)
+  - [10.2. Mono-repo Development](#102-mono-repo-development)
+  - [10.3. Debugging Techniques](#103-debugging-techniques)
+  - [10.4. Performance Optimization](#104-performance-optimization)
+- [11. Deployment Guide](#11-deployment-guide)
+  - [11.1. Static Hosting Platforms](#111-static-hosting-platforms)
+  - [11.2. Cloud Platform Deployment](#112-cloud-platform-deployment)
+  - [11.3. Serverless Deployment](#113-serverless-deployment)
+  - [11.4. Container Deployment](#114-container-deployment)
+- [12. Troubleshooting](#12-troubleshooting)
+  - [12.1. Common Build Issues](#121-common-build-issues)
+  - [12.2. Performance Issues](#122-performance-issues)
+  - [12.3. Data Flow Debugging](#123-data-flow-debugging)
+  - [12.4. Error Recovery Strategies](#124-error-recovery-strategies)
+- [13. Advanced Topics](#13-advanced-topics)
+  - [13.1. Custom Pipeline Development](#131-custom-pipeline-development)
+  - [13.2. Stream Composition Patterns](#132-stream-composition-patterns)
+  - [13.3. Plugin Architecture](#133-plugin-architecture)
+- [14. Contributing](#14-contributing)
+  - [14.1. Development Setup](#141-development-setup)
+  - [14.2. Coding Standards](#142-coding-standards)
+  - [14.3. Submitting Changes](#143-submitting-changes)
+- [Example Implementations](#example-implementations)
+  - [CloudFlare Static Website](#cloudflare-static-website)
+- [15. Glossary](#15-glossary)
 
-## About Gilbert
+## 1. About Gilbert
 
 Gilbert is a **streams-based, data-driven static site generator** designed for exceptional performance in modern deployment environments. Unlike traditional file-based generators that process filesystem trees of markdown files, Gilbert transforms data streams through specialized pipelines to generate HTML, CSS, and JavaScript with remarkable speed and efficiency.
 
@@ -90,7 +92,7 @@ Gilbert is a **streams-based, data-driven static site generator** designed for e
 
 > **AI Note**: Gilbert's architecture centers on **GilbertFile objects flowing through Web API streams**. All adapter `read()` methods return `ReadableStream<GilbertFile>`, all adapter `write()` methods accept `WritableStream<GilbertFile>`. Pipelines have different patterns: TemplatePipeline returns TransformStreams, StaticFilesPipeline exposes a TransformStream property, while ScriptsPipeline and StylesheetsPipeline return ReadableStreams directly. This unified GilbertFile contract enables seamless composition and runtime portability.
 
-### Philosophy: The Mind's DOM
+### 1.1. Philosophy: The Mind's DOM
 
 Gilbert's template philosophy centers on the "mind's DOM" concept - developers must be able to easily visualize and mentally render templates without cognitive overhead.
 
@@ -108,7 +110,7 @@ Gilbert's template philosophy centers on the "mind's DOM" concept - developers m
 
 **Implementation**: Gilbert supports optional data middleware for cross-file transformations (pagination, global data objects, etc.) while keeping templates simple. Complex data processing happens in middleware functions before template rendering.
 
-### Performance-First Architecture
+### 1.2. Performance-First Architecture
 
 Gilbert consistently achieves **sub-200ms build times** for complex projects, enabling both rapid local development and real-time serverless publishing.\n\n**Validated Performance (January 2025):**\n- **Ultimate Test**: 27 files (4 HTML, 1 JS, 1 CSS, 21 static assets) generated in 189ms\n- **Compilation Phase**: 137ms (within 150ms target)\n- **Concurrent Pipelines**: All 4 pipelines running simultaneously without race conditions\n- **Real-World Validation**: StopTheParty website structure with authentic complexity
 
@@ -123,7 +125,7 @@ Gilbert consistently achieves **sub-200ms build times** for complex projects, en
 - **Template Pre-loading**: Templates loaded once and reused across all data processing
 - **Minimal Dependencies**: Careful dependency selection to minimize runtime overhead
 
-### Runtime-Agnostic Design
+### 1.3. Runtime-Agnostic Design
 
 Gilbert's engine uses only **Web API streams** (ReadableStream, TransformStream, WritableStream) to ensure portability across modern JavaScript runtimes.
 
@@ -138,9 +140,9 @@ Gilbert's engine uses only **Web API streams** (ReadableStream, TransformStream,
 - **Deployment Flexibility**: Same code base across all environments
 - **Integration Patterns**: Clean separation between processing logic and I/O
 
-## Getting Started
+## 2. Getting Started
 
-### Quick Start
+### 2.1. Quick Start
 
 The fastest way to get Gilbert running is through the example project included in the repository:
 
@@ -205,7 +207,7 @@ const gilbert = new Gilbert(
 await gilbert.compile().pipeTo(outputAdapter.write("./dist"));
 ```
 
-### Project Structure
+### 2.2. Project Structure
 
 Gilbert follows a conventional project structure that separates content, templates, assets, and output:
 
@@ -241,7 +243,7 @@ Gilbert follows a conventional project structure that separates content, templat
 - **`src/stylesheets/`**: CSS entry points processed by PostCSS with optional autoprefixing.
 - **`src/images/`, `src/fonts/`**: Static assets copied to output directory.
 
-### Basic Usage
+### 2.3. Basic Usage
 
 **Command Line Interface:**
 
@@ -316,9 +318,9 @@ Your `data.json` file defines pages using the `uris` property:
 
 The `webProducerKey` maps to template files (`homepage.hbs`, `page.hbs`) in your theme directory.
 
-## Core Architecture
+## 3. Core Architecture
 
-### Streams-Based Processing
+### 3.1. Streams-Based Processing
 
 Gilbert processes content through **Web API streams** (ReadableStream, TransformStream, WritableStream) for runtime-agnostic compatibility and high-performance processing.
 
@@ -354,7 +356,7 @@ Gilbert processes content through **Web API streams** (ReadableStream, Transform
 
 **Stream Coordination**: Gilbert uses stream utilities for managing multiple concurrent streams and ensuring proper completion handling.
 
-### Data Middleware System
+### 3.2. Data Middleware System
 
 Gilbert supports optional data middleware for cross-file transformations that require knowledge of the entire dataset. Middleware functions process all data files before template rendering, enabling powerful transformations like pagination, global data objects, and content categorization.
 
@@ -417,7 +419,7 @@ const gilbert = new Gilbert(
 );
 ```
 
-### Pipeline Architecture
+### 3.3. Pipeline Architecture
 
 Gilbert uses specialized pipelines for different content types, each optimized for its specific processing requirements.
 
@@ -468,7 +470,7 @@ async prep() {
 }
 ```
 
-### Virtual File System
+### 3.4. Virtual File System
 
 Gilbert uses **GilbertFile objects** instead of direct filesystem operations, enabling in-memory processing and easy testing.
 
@@ -506,13 +508,13 @@ console.log(file.extname); // ".html"
 - **`stat`**: File system statistics (size, dates, etc.)
 - **`contentType`**: MIME type based on file extension
 
-### Build vs. Publish Modes
+### 3.5. Build vs. Publish Modes
 
 Gilbert supports **selective pipeline execution** to optimize for different deployment scenarios and performance requirements.
 
 **Human Context**: This architecture enables both complete builds during development and fast content-only publishing in serverless environments, providing flexibility for different deployment workflows.
 
-#### Building (Full Pipeline)
+#### 3.5.1. Building (Full Pipeline)
 
 **When**: Development, asset changes, CI/CD with complete development environment
 **Where**: Local filesystem or VMs with full Node.js environment
@@ -526,7 +528,7 @@ Gilbert supports **selective pipeline execution** to optimize for different depl
 **Requirements**: Full filesystem access for esbuild to read source + node_modules
 **Output**: Complete optimized static site ready for deployment
 
-#### Publishing (Content-Only Pipeline)
+#### 3.5.2. Publishing (Content-Only Pipeline)
 
 **When**: Content changes, CMS updates, webhook-triggered publishing
 **Where**: Serverless environments (Cloudflare Workers, edge functions)
@@ -539,7 +541,7 @@ Gilbert supports **selective pipeline execution** to optimize for different depl
 **Requirements**: Web API streams only, no filesystem dependencies
 **Output**: Updated HTML and content-related assets
 
-#### Design Rationale
+#### 3.5.3. Design Rationale
 
 **Minimal JS/CSS Philosophy**: Sites built with Gilbert use minimal client-side code, making asset rebuilds unnecessary for content changes.
 
@@ -566,11 +568,11 @@ Gilbert supports **selective pipeline execution** to optimize for different depl
 > });
 > ```
 
-## Gilbert Packages
+## 4. Gilbert Packages
 
 Gilbert is organized as a monorepo with specialized packages for different runtime environments and use cases.
 
-### gilbert (Core Engine)
+### 4.1. gilbert (Core Engine)
 
 The main Gilbert compiler engine that orchestrates all pipeline processing and stream coordination.
 
@@ -619,7 +621,7 @@ const gilbert = new Gilbert(
 const outputStream = await gilbert.compile();
 ```
 
-### gilbert-file (Virtual File Objects)
+### 4.2. gilbert-file (Virtual File Objects)
 
 Virtual file object implementation providing a lightweight, Web API-compatible file abstraction.
 
@@ -661,7 +663,7 @@ console.log(file.extname); // '.html'
 console.log(file.contentType); // 'text/html'
 ```
 
-### gilbert-fs (Filesystem Integration)
+### 4.3. gilbert-fs (Filesystem Integration)
 
 Web API WritableStream implementation for writing GilbertFile objects to the local filesystem.
 
@@ -697,7 +699,7 @@ const destStream = GilbertFS.dest("./dist");
 await sourceStream.pipeThrough(transformStream).pipeTo(destStream);
 ```
 
-### gilbert-github (GitHub Integration)
+### 4.4. gilbert-github (GitHub Integration)
 
 GitHub integration package for fetching content and templates from GitHub repositories as Web API streams.
 
@@ -739,7 +741,7 @@ const dataStream = GilbertGitHub.src({
 });
 ```
 
-### gilbert-cli (Command Line Interface)
+### 4.5. gilbert-cli (Command Line Interface)
 
 > Note
 > This module is very old, stale and not currently function
@@ -778,11 +780,11 @@ gilbert develop --watch
 gilbert build --no-scripts --no-stylesheets
 ```
 
-## Adapter Interface Specification
+## 5. Adapter Interface Specification
 
 Gilbert adapters provide standardized interfaces for reading from and writing to different data sources. All adapters follow a consistent constructor-based pattern with typed configuration options and Web API streams.
 
-### Constructor Pattern
+### 5.1. Constructor Pattern
 
 All Gilbert adapters use modern ES6 class constructors with private fields for configuration encapsulation:
 
@@ -803,7 +805,7 @@ const githubAdapter = new GilbertGitHub({
 });
 ```
 
-### Read Method
+### 5.2. Read Method
 
 The `read(patterns, options)` method creates a ReadableStream of GilbertFile objects matching the specified glob patterns:
 
@@ -832,7 +834,7 @@ const githubStream = githubAdapter.read("templates/**/*", {
 - `options` (object): Optional configuration overrides
 - **Returns:** `ReadableStream<GilbertFile>`
 
-### Write Method
+### 5.3. Write Method
 
 The `write(destination)` method creates a WritableStream for outputting GilbertFile objects:
 
@@ -852,7 +854,7 @@ await sourceAdapter.read("**/*").pipeThrough(transformStream).pipeTo(destination
 - `destination` (string): Output destination configuration
 - **Returns:** `WritableStream<GilbertFile>`
 
-### Usage Examples
+### 5.4. Usage Examples
 
 **Local Development Workflow:**
 
@@ -925,11 +927,11 @@ const prodAdapter = new GilbertGitHub({
 const contentStream = (isDev ? devAdapter : prodAdapter).read(["templates/**/*.hbs", "data/**/*.json"]);
 ```
 
-## Pipelines Reference
+## 6. Pipelines Reference
 
 Gilbert's pipeline system processes different asset types through specialized stream transformations. Each pipeline handles specific file types and provides configurable processing options.
 
-### Template Pipeline
+### 6.1. Template Pipeline
 
 Processes template files using configurable template engines with data injection and partials support.
 
@@ -953,7 +955,7 @@ Processes template files using configurable template engines with data injection
 > - Output paths are computed based on template file structure and configuration
 > - Error handling preserves source location information for debugging
 
-### Scripts Pipeline
+### 6.2. Scripts Pipeline
 
 Processes JavaScript files with bundling, transpilation, and optimization.
 
@@ -995,7 +997,7 @@ const scriptsPipeline = new ScriptsPipeline(
 4. Code optimization
 5. Source map generation
 
-### Stylesheets Pipeline
+### 6.3. Stylesheets Pipeline
 
 Processes CSS files with preprocessing, optimization, and asset handling.
 
@@ -1023,7 +1025,7 @@ Processes CSS files with preprocessing, optimization, and asset handling.
 4. PostCSS plugin execution
 5. Optimization and minification
 
-### Static Files Pipeline
+### 6.4. Static Files Pipeline
 
 Handles binary assets, images, fonts, and other static resources with optimization and versioning.
 
@@ -1048,11 +1050,11 @@ Handles binary assets, images, fonts, and other static resources with optimizati
 4. Content hash generation
 5. Destination path computation
 
-## API Reference
+## 7. API Reference
 
 Comprehensive API documentation for all Gilbert packages and their exported interfaces.
 
-### Core Engine API
+### 7.1. Core Engine API
 
 The main gilbert package provides the core streaming engine and pipeline orchestration.
 
@@ -1108,7 +1110,7 @@ await gilbert.compile().pipeTo(outputAdapter.write("./dist"));
 
 **Returns:** `Promise<ReadableStream<GilbertFile>>` - Stream of generated files
 
-### GilbertFile API
+### 7.2. GilbertFile API
 
 Virtual file objects that flow through Gilbert pipelines.
 
@@ -1138,7 +1140,7 @@ const file = new GilbertFile({
 - `isBuffer()`: Returns true if contents is a Buffer
 - `isString()`: Returns true if contents is a string
 
-### Filesystem Integration API
+### 7.3. Filesystem Integration API
 
 **gilbert-fs.src(pattern, options)**
 
@@ -1182,7 +1184,7 @@ const outputStream = dest("./dist", {
 
 **Returns:** `WritableStream<GilbertFile>` - Stream that accepts files
 
-### GitHub Integration API
+### 7.4. GitHub Integration API
 
 **gilbert-github.src(repo, path, options)**
 
@@ -1200,13 +1202,13 @@ const githubStream = src("owner/repo", "content/**/*.md", {
 **Parameters:**
 
 - `repo` (string): Repository in 'owner/name' format
-- `path` (string): File path or glob pattern
+- `path` (string): fi path or glob pattern
 - `options.ref` (string): Git reference (branch, tag, or commit)
 - `options.token` (string): GitHub API authentication token
 
 **Returns:** `ReadableStream<GilbertFile>` - Stream of repository files
 
-### Data Source API
+### 7.5. Data Source API
 
 **new DataSource(sources)**
 
@@ -1227,7 +1229,7 @@ const dataSource = new DataSource(["./data/**/*.json", "./data/**/*.yaml", "http
 - `getData()`: Returns Promise`<object>` with merged data
 - `watch()`: Returns stream of data updates for development
 
-### Pipeline Configuration API
+### 7.6. Pipeline Configuration API
 
 **TemplatePipeline Configuration**
 
@@ -1286,11 +1288,11 @@ const dataSource = new DataSource(["./data/**/*.json", "./data/**/*.yaml", "http
 // Exposes: this.transformStream (TransformStream)
 ```
 
-## Integration Patterns
+## 8. Integration Patterns
 
 Common patterns for integrating Gilbert into different development and deployment workflows.
 
-### Local Development Environment
+### 8.1. Local Development Environment
 
 Set up Gilbert for local development with file watching and hot reload capabilities.
 
@@ -1366,7 +1368,7 @@ watcher.on("change", async (path) => {
 });
 ```
 
-### Serverless Deployment
+### 8.2. Serverless Deployment
 
 Deploy Gilbert-generated sites to serverless platforms with optimized asset delivery.
 
@@ -1452,7 +1454,7 @@ export default async function handler(request) {
 }
 ```
 
-### CI/CD Integration
+### 8.3. CI/CD Integration
 
 Integrate Gilbert into continuous integration and deployment pipelines.
 
@@ -1525,7 +1527,7 @@ await gilbert.compile().pipeTo(outputAdapter.write("./dist"));
 console.log("Build completed successfully");
 ```
 
-### Headless CMS Integration
+### 8.4. Headless CMS Integration
 
 Connect Gilbert to headless CMS systems for content management workflows.
 
@@ -1619,15 +1621,15 @@ class StrapiDataSource {
 > - Use Web API fetch for CMS integration to maintain runtime compatibility
 > - Structure data sources to match template expectations for easier debugging
 
-## Migration Guides
+## 9. Migration Guides
 
 Guidelines for migrating to Gilbert from other static site generators and for upgrading between Gilbert versions.
 
-## Development Workflows
+## 10. Development Workflows
 
 Best practices and workflows for developing with Gilbert, including testing, debugging, and performance optimization.
 
-### Testing Strategy
+### 10.1. Testing Strategy
 
 Gilbert uses a comprehensive multi-layered testing strategy that validates individual pipelines, integration scenarios, and real-world performance. All tests achieve 100% pass rates across the monorepo workspace.
 
@@ -1834,7 +1836,7 @@ describe("Pipeline Integration", () => {
 });
 ```
 
-### Mono-repo Development
+### 10.2. Mono-repo Development
 
 Best practices for developing Gilbert packages within the mono-repo structure, including versioning and dependency management.
 
@@ -1886,7 +1888,7 @@ Gilbert/
 │   └── gilbert-newpackage/   # New package (starts at 0.1.0)
 ```
 
-### Debugging Techniques
+### 10.3. Debugging Techniques
 
 Effective debugging strategies for Gilbert pipelines and data flows.
 
@@ -1983,7 +1985,7 @@ class DebugDataSource {
 > - Use source maps to trace errors back to original files
 > - Consider breakpoints in transform functions for step-by-step debugging
 
-### Performance Optimization
+### 10.4. Performance Optimization
 
 Strategies for optimizing Gilbert build performance and output quality.
 
@@ -2129,11 +2131,11 @@ class BuildCache {
 > - Monitor build performance to identify bottlenecks
 > - Consider parallel processing for independent operations
 
-## Deployment Guide
+## 11. Deployment Guide
 
 Comprehensive deployment strategies for Gilbert-generated sites across different platforms and environments.
 
-### Static Hosting Platforms
+### 11.1. Static Hosting Platforms
 
 Deploy Gilbert sites to popular static hosting services with optimal configuration.
 
@@ -2251,7 +2253,7 @@ jobs:
         uses: actions/deploy-pages@v2
 ```
 
-### Cloud Platform Deployment
+### 11.2. Cloud Platform Deployment
 
 Deploy Gilbert sites to major cloud platforms with CDN integration.
 
@@ -2356,7 +2358,7 @@ class GCPDeployer {
 }
 ```
 
-### Serverless Deployment
+### 11.3. Serverless Deployment
 
 Deploy Gilbert as serverless functions for dynamic content generation.
 
@@ -2477,7 +2479,7 @@ export default {
 };
 ```
 
-### Container Deployment
+### 11.4. Container Deployment
 
 Deploy Gilbert in containerized environments for scalable generation.
 
@@ -2629,11 +2631,11 @@ spec:
 > - Always implement proper error handling and monitoring
 > - Use environment-specific configurations for optimal performance
 
-## Troubleshooting
+## 12. Troubleshooting
 
 Common issues and solutions when working with Gilbert, including debugging strategies and error resolution.
 
-### Common Build Issues
+### 12.1. Common Build Issues
 
 **Stream Processing Errors:**
 
@@ -2660,7 +2662,7 @@ try {
 }
 ```
 
-### Performance Issues
+### 12.2. Performance Issues
 
 **Memory Usage Issues:**
 
@@ -2680,7 +2682,7 @@ const pipeline = gilbert.createPipeline({
 });
 ```
 
-### Data Flow Debugging
+### 12.3. Data Flow Debugging
 
 **Template Context Issues:**
 
@@ -2735,7 +2737,7 @@ class PipelineTracer {
 }
 ```
 
-### Error Recovery Strategies
+### 12.4. Error Recovery Strategies
 
 **Graceful Degradation:**
 
@@ -2776,11 +2778,11 @@ async function buildWithRetry(pipeline, maxRetries = 3) {
 }
 ```
 
-## Advanced Topics
+## 13. Advanced Topics
 
 Advanced Gilbert features and patterns for complex use cases and custom integrations.
 
-### Custom Pipeline Development
+### 13.1. Custom Pipeline Development
 
 Create custom pipelines for specialized content processing needs.
 
@@ -2899,7 +2901,7 @@ class OptimizedImagePipeline {
 }
 ```
 
-### Stream Composition Patterns
+### 13.2. Stream Composition Patterns
 
 Advanced patterns for combining and orchestrating multiple streams.
 
@@ -2988,7 +2990,7 @@ const conditionalProcessor = new ConditionalPipeline(
 );
 ```
 
-### Plugin Architecture
+### 13.3. Plugin Architecture
 
 Develop reusable plugins for Gilbert pipelines.
 
@@ -3066,11 +3068,11 @@ ${urls}
 > - Design plugins to be composable and reusable across projects
 > - Consider performance implications of parallel vs sequential processing
 
-## Contributing
+## 14. Contributing
 
 Guidelines for contributing to Gilbert development, including development setup, coding standards, and submission process.
 
-### Development Setup
+### 14.1. Development Setup
 
 **Prerequisites:**
 
@@ -3113,7 +3115,7 @@ gilbert/
 └── examples/            # Usage examples
 ```
 
-### Coding Standards
+### 14.2. Coding Standards
 
 **JavaScript/TypeScript Style:**
 
@@ -3162,7 +3164,7 @@ export function createPipeline(config) {
 4. Push to branch: `git push origin feature/amazing-feature`
 5. Open a Pull Request
 
-### Submitting Changes
+### 14.3. Submitting Changes
 
 **Pull Request Process:**
 
@@ -3204,7 +3206,29 @@ including wildcards and directory traversal.
 Closes #123
 ```
 
-## Glossary
+## Example Implementations
+
+The following section contains some real-world example implementations.
+
+### CloudFlare Static Website
+
+This example demonstrates deploying a static website generated by Gilbert on CloudFlare Workers.
+
+The system context looks like
+
+![system context diagram](./puml/cloudflare-static-website-with-cms.png)
+
+The system uses two separate Cloudflare workers. One for publishing and one for serving.
+
+> [!NOTE]>
+>
+> We are not using Worker static assets. WOrker static assets are part of a deployment of th e worker and we want to update CMS changes without requiring a full worker deployment each time
+
+![](./puml/cloudflare-publishing-service-containers.png)
+
+![](./puml/cloudflare-serving-service-containers.png)
+
+## 15. Glossary
 
 **Data Source**: Object or configuration that provides template context data from files, APIs, or other sources.
 

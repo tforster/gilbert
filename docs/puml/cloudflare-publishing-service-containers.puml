@@ -1,0 +1,41 @@
+@startuml Cloudflare_Publishing_Service_Containers
+!include <C4/C4_Container>
+
+' Cloudflare Publishing Service - C4 Container Diagram
+
+
+
+
+System(cms, "Headless CMS", "pagescms.org")
+System_Ext(github, "GitHub", "Source Repository")
+System(r2_bucket, "R2 Bucket", "Cloudflare R2")
+
+System_Boundary(publishing_service, "Publishing Service") {
+  Container(webhook_handler, "Webhook Handler", "Cloudflare Worker Route", "Receives publish webhook from CMS, orchestrates the build process")
+  
+  Container(gilbert_github, "gilbert-github",  "@tforster/gilbert-github","Returns ReadableStream<GilbertFile> each for data and templates")
+  
+  Container(data_transformer, "Data Transformer", "Custom JS Module", "Transforms content files into URI-based data structure for Gilbert template processing")
+  
+  Container(gilbert_core, "Gilbert", "@tforster/gilbert", "Streams-based static site generator; processes data + templates through pipelines")
+  
+  Container(gilbert_r2, "gilbert-r2", "@tforster/gilbert-r2", "Adapter that writes GilbertFile streams to R2 bucket via native streaming API")
+  Container(toml, "wrangler.toml", "Worker configuration and bindings for R2")
+}
+
+Rel(cms, webhook_handler, "/publish", "HTTPS POST")
+
+Rel(webhook_handler, gilbert_github, "Instruct gilbert-github to fetch data and templates")
+Rel(github, gilbert_github,  "Fetch data and templates", "Tarball")
+
+Rel(data_transformer, gilbert_core, "stream", "ReadableStream<GilbertFile> (*.json URI files)")
+
+Rel(gilbert_github, gilbert_core, "stream","ReadableStream<GilbertFile> (*.hbs files)")
+Rel(gilbert_github, data_transformer, "stream", "ReadableStream<GilbertFile> (*.json files)")
+Rel(gilbert_core, gilbert_r2, "Output generated site", "ReadableStream<GilbertFile>")
+Rel(gilbert_r2, r2_bucket, "write(bucket) → R2.put()", "R2 native streaming API (worker binding)")
+
+
+SHOW_LEGEND()
+
+@enduml

@@ -27,6 +27,8 @@ export default [
         ...globals.browser,
         ...globals.node,
         ...globals.amd,
+        // Cloudflare Workers runtime globals
+        FixedLengthStream: "readonly",
       },
 
       ecmaVersion: "latest",

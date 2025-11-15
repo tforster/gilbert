@@ -21,8 +21,8 @@
   - [ ] Example 3: Real-world GitHub CMS with transforms + pagination (stoptheparty.ca pattern)
 
 - [ ] **Implement stream middleware pattern**
-  - [ ] Define middleware interface using Web API TransformStreams
-  - [ ] Create pagination middleware for cross-file operations
+  - [x] Define middleware interface using Web API TransformStreams
+  - [x] Create pagination middleware for cross-file operations
   - [ ] Document Data Source → Adapter → [Middleware] → Gilbert Core architecture
 
 ## Lower Priority

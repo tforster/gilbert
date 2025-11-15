@@ -14,7 +14,18 @@
     "sash.hoverBorder": "#01a753",
     "commandCenter.border": "#e7e7e799"
   },
-  "cSpell.words": ["Promisifies", "vars"],
+  "cSpell.words": [
+    "autoprefix",
+    "autoprefixing",
+    "dataurl",
+    "enduml",
+    "pagescms",
+    "Promisifies",
+    "startuml",
+    "untar",
+    "vars",
+    "Writable"
+  ],
   "typescript.validate.enable": true,
   "javascript.validate.enable": true,
   "files.associations": {

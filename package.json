@@ -5,6 +5,7 @@
   },
   "description": "Workspace container for the Gilbert and GilbertFile modules.",
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251115.0",
     "@eslint/compat": "^1.3.2",
     "@eslint/js": "^9.35.0",
     "@eslint/json": "^0.13.2",
@@ -58,6 +59,7 @@
     "services/gilbert-fs",
     "services/gilbert-github",
     "services/gilbert-glob",
-    "services/gilbert-logger"
+    "services/gilbert-logger",
+    "services/gilbert-r2"
   ]
 }

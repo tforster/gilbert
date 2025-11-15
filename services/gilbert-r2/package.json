@@ -1,0 +1,30 @@
+{
+  "author": "Troy Forster <troy.forster@gmail.com> (http://www.tforster.com/)",
+  "dependencies": {
+    "@tforster/gilbert-file": "^0.1.0",
+    "@tforster/gilbert-logger": "^0.1.0"
+  },
+  "description": "Cloudflare R2 adapter for Gilbert using Web API streams",
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  },
+  "exports": {
+    ".": "./lib/index.js"
+  },
+  "files": [
+    "lib/"
+  ],
+  "license": "MIT",
+  "main": "lib/index.js",
+  "name": "@tforster/gilbert-r2",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/tforster/webproducer.git"
+  },
+  "scripts": {
+    "test": "node --test tests/**/*.test.js",
+    "test:integration": "wrangler dev tests/integration-worker.js --local --persist"
+  },
+  "type": "module",
+  "version": "0.1.0"
+}
