@@ -53,7 +53,8 @@ export default class GilbertR2 {
 
     this.#bucket = options.bucket;
     this.#binding = options.binding;
-    this.#maxFileSize = options.maxFileSize || 104857600; // 100 MiB default
+    // 100 MiB is the current R2 object size limit using the native API. Much larger sizes with multipart, not implemented yet.
+    this.#maxFileSize = options.maxFileSize || 104857600;
 
     if (globalThis.GILBERT_DEBUG === "true") {
       logger.debug(`GilbertR2: Initialized with bucket: ${this.#bucket}, maxFileSize: ${this.#maxFileSize}`);
@@ -255,6 +256,8 @@ export default class GilbertR2 {
     }
 
     // Determine cache control based on content type
+    // TODO: Consider moving values to config, or possibly Gilbert core+config
+
     const isHtml = file.contentType === "text/html" || file.path.endsWith(".html");
     const cacheSeconds = isHtml ? cacheControl.html || 3600 : cacheControl.assets || 31536000;
 
