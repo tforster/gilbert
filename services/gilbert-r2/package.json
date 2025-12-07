@@ -6,7 +6,7 @@
   },
   "description": "Cloudflare R2 adapter for Gilbert using Web API streams",
   "devDependencies": {
-    "wrangler": "^3.0.0"
+    "wrangler": "^4.53.0"
   },
   "exports": {
     ".": "./lib/index.js"
