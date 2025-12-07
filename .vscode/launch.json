@@ -11,16 +11,7 @@
       "runtimeVersion": "14",
       "args": ["--transform", "cliTransform.js"]
     },
-    {
-      "type": "pwa-node",
-      "request": "launch",
-      "name": "app.wazzcards.com",
-      "skipFiles": ["<node_internals>/**"],
-      "cwd": "/home/tforster/dev/Wazzio/Wazzio/WazzCards/app.wazzcards.com/",
-      "program": "${workspaceFolder}/scripts/cli/index.js",
-      "runtimeVersion": "14",
-      "args": ["-d", "./src/data/content.json", "-t", "./src/elements/**/*.hbs", "-c", "./src/stylesheets/jake.css"]
-    },
+
     {
       "type": "pwa-node",
       "request": "launch",
