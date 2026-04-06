@@ -212,7 +212,7 @@ async function generateTestImages() {
   // Check if ImageMagick is available
   try {
     execSync("which convert", { stdio: "ignore" });
-  } catch (error) {
+  } catch {
     console.log("⚠️  ImageMagick not found. Install with: sudo apt install imagemagick");
     console.log("⚠️  Skipping image generation...");
     return;

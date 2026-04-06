@@ -1,27 +1,22 @@
-# Gilbert (fka WebProducer) <!-- omit in toc -->
+# Gilbert <!-- omit in toc -->
 
-Gilbert ~~WebProducer~~ is a data-driven tool for highly performant production of websites and web applications.
+Gilbert is a data-driven static site generator built on Web API streams. It generates content by
+merging structured data with Handlebars templates, processing scripts and stylesheets through esbuild,
+and passing static assets through unchanged — all via a single concurrent pipeline that completes a
+complex 200+ page site in well under a second.
 
 > [!IMPORTANT]
-> **Full documentation is in [`docs/`](./docs/README.md).** Tutorials, how-to guides, API reference, and architectural explanations are all there, organised by the [Diátaxis framework](https://diataxis.fr/).
+> **Full documentation is in [`docs/`](./docs/README.md).** Tutorials, how-to guides, API reference,
+> and architectural explanations are all there, organised by the
+> [Diátaxis framework](https://diataxis.fr/).
 
 ## Table of Contents <!-- omit in toc -->
 
 - [About](#about)
-- [Try It Out](#try-it-out)
-- [Usage](#usage)
-  - [Installation](#installation)
-  - [Operation](#operation)
-    - [Path Overrides](#path-overrides)
-    - [Additional CSS Options](#additional-css-options)
-    - [Disable Pipelines](#disable-pipelines)
-    - [Housekeeping Options](#housekeeping-options)
-  - [Default Directory Structure](#default-directory-structure)
-  - [Upgrading from 0.9.0 to 1.0.0](#upgrading-from-090-to-100)
-    - [New `uris` Property](#new-uris-property)
-    - [`modelName` Change to `webProducerKey`](#modelname-change-to-webproducerkey)
+- [Features](#features)
+- [Packages](#packages)
+- [Quick Start](#quick-start)
 - [API](#api)
-- [Known Issues](#known-issues)
 - [Change Log](#change-log)
 - [Code of Conduct](#code-of-conduct)
 - [Contributing](#contributing)
@@ -29,189 +24,100 @@ Gilbert ~~WebProducer~~ is a data-driven tool for highly performant production o
 
 ## About
 
-While Gilbert could be thought of as static site generator it differs in that it is:
+Gilbert is a streams-based, data-driven static site generator designed for modern deployment
+environments. Rather than walking a tree of markdown files, Gilbert accepts a stream of JSON data
+and merges it with in-memory Handlebars templates, generating each page on the fly.
 
-- **Data-driven**: Whereas most static site generators process a tree of page-centric markdown files in the filesystem, Gilbert takes a stream of data and generates content by merging it with in-memory "component" templates. This approach allows Gilbert to be extremely fast and efficient for building content with complex IA needs.
-- **Streams based**: It makes heavy use of readable, writeable and transformation streams allowing for large volumes of content to be processed at high speed with minimal memory requirements. This also makes Gilbert ideal for serverless deployments using AWS Lambda or Azure Cloud Functions.
+- **Data-driven**: Content is structured data — a JSON stream where each record maps a URI to a
+  template key and its data properties. This approach supports arbitrarily complex information
+  architectures without a rigid filesystem convention.
 
-  Since Gilbert consumes and produces streams its behaviour can be easily adapted by transforming the inbound data with a pipe and transforming the outbound data with a pipe. For instance, data could be streamed from a REST API call to a transformation function that restructures the data schema before piping on to Gilbert.
+- **Web API streams**: All I/O flows through the
+  [WHATWG Streams API](https://streams.spec.whatwg.org/) (`ReadableStream`, `TransformStream`,
+  `WritableStream`). There are no Node.js stream dependencies in the core engine, making Gilbert
+  portable across Node.js ≥20, Deno, Bun, and Cloudflare Workers.
 
-- **Decoupled architecture**: The core of Gilbert is implemented as a reusable NPM module. Since it only accepts and returns streams it can be leveraged for uses cases including:
-  - Local web development: It can build a 200+ page site with minified HTML, bundled and minified ES modules, and bundled and minified CSS in well under a second in a moderate workstation
-  - Serverless web publishing: Triggered by a webhook from a headless CMS a Gilbert serverless function can query a data endpoint (REST, GraphQL, etc), rebuild and redeploy pages to a production server in about a second.
-- **Lean and Lightweight**: Requiring just 6 dependencies Gilbert's at-rest and in-memory footprint is very small.
-- **Uses Handlebars Templates**: Although Handlebars has been around for a long time it is still significantly faster than &lt;insert bloaty framework du jour here>. And, the Handlebars token replacement syntax means it can be used to generate files of many types including HTML, CSS, JS, text, XML, etc. This makes it easy to generate all files in a website including robots.txt, sitemap.xml, manifest.json, etc.
+- **Concurrent pipelines**: Templates, Scripts, Stylesheets, and Static Files run as four
+  concurrent pipelines. A validated 200+ page build with all four pipelines completes in ~400ms
+  on a modest workstation.
 
-For a detailed technical explanation please see the [Developer Guide](./docs/developer-guide.md).
+- **Decoupled adapters**: Gilbert core accepts and returns streams. Filesystem I/O, GitHub API
+  access, and Cloudflare R2 uploads are all separate adapter packages. Any `ReadableStream<GilbertFile>`
+  is a valid source; any `WritableStream<GilbertFile>` is a valid destination.
 
-## Try It Out
+## Features
 
-1. Clone this repo `git clone git@github.com:tforster/webproducer.git`
-2. CD into the project: `cd webproducer`
-3. Install dependencies: `npm i`
-4. CD into the examples/sample-site directory: `cd examples/getting-started`
-5. Run the CLI: `npx webproducer`
-6. Review the output in examples/getting-started/dist
+- **Template pipeline** — Handlebars templates; includes/partials via `{{> component}}`; built-in
+  HTML minification via a zero-dependency custom minifier that outperforms `html-minifier-terser`
+- **Scripts pipeline** — esbuild bundling, tree-shaking, and minification; source maps; configurable
+  target (default `esnext`); full esbuild options passthrough
+- **Stylesheets pipeline** — esbuild CSS bundling; PostCSS Autoprefixer support; font/asset loaders;
+  source maps
+- **Static files pipeline** — pass-through with folder structure preservation; no filesystem
+  coupling in the core engine
+- **Data middleware** — array-based transformation pipeline applied to all data before rendering
+  begins; enables markdown-to-HTML conversion, content enrichment, pagination, and global navigation
+  across the full dataset
+- **Custom MIME module** — zero audit vulnerabilities; correct content-type derivation from file
+  extension on every path rename
+- **`GilbertFile` object model** — `path`, `base`, `relative`, `contents` (`Uint8Array` or
+  `ReadableStream`), `contentType`, `clone()`, async `toString()`, `toBuffer()`; `ReadableStream.tee()`
+  ensures stream independence on clone
+- **`webProducerKey`** — data convention that maps a URI record to its Handlebars template; supports
+  path separators for component-based architectures (e.g. `"webProducerKey": "/admin/report/report"`)
+- **Programmatic API** — `gilbert.compile()` returns a `ReadableStream` directly; pipe it anywhere
+- **Zero audit vulnerabilities** — all third-party dependencies audited; custom replacements used
+  where vulnerabilities existed
 
-## Usage
+## Packages
 
-### Installation
+| Package                                                  | Description                                       |
+| -------------------------------------------------------- | ------------------------------------------------- |
+| [`@tforster/gilbert`](./services/gilbert/)               | Core engine — orchestrates all four pipelines     |
+| [`@tforster/gilbert-file`](./services/gilbert-file/)     | `GilbertFile` virtual file object                 |
+| [`@tforster/gilbert-fs`](./services/gilbert-fs/)         | Filesystem adapter (read/write via glob patterns) |
+| [`@tforster/gilbert-github`](./services/gilbert-github/) | GitHub repository source adapter                  |
+| [`@tforster/gilbert-glob`](./services/gilbert-glob/)     | Shared glob pattern matching utilities            |
+| [`@tforster/gilbert-logger`](./services/gilbert-logger/) | Lightweight async logger; zero dependencies       |
+| [`@tforster/gilbert-r2`](./services/gilbert-r2/)         | Cloudflare R2 destination adapter                 |
 
-Technically the Gilbert CLI requires no installation as it can be run using npx. However, installing it as a developer dependency will reduce the loading latency.
+See the [packages reference](./docs/reference/packages.md) for full API details.
 
-```shell
-npm install @tforster/webproducer --save-dev
-```
-
-### Operation
-
-```shell
-npx webproducer [options]
-```
-
-Gilbert can run nicely out-of-the-box against an appropriately [structured source tree](#default-directory-structure) it also has lots of configuration options for fine tuning. These can be viewed anytime by typing `npx webproducer -h` which produces the following:
-
-```shell
-  -V, --version               output the version number
-  -r, --relative-root [root]  The relative root of all the source files (default: "./src")
-  -d, --data [data]           Path to the JSON data file. (default: "./src/data/data.json")
-  -t, --theme [theme]         Glob to handlebars files (default: "./src/theme/**/*.hbs")
-  -s, --scripts [scripts]     Comma separated list of ES Module entry points (default: "./src/scripts/main.js")
-  -c, --css [css]             Comma separated list of stylesheet entry points (default: "./src/stylesheets/main.css")
-  -f, --files [files]         Comma separated list of static file globs (default: "./src/images/**/*.*")
-  -o, --out [out]             Output directory (default: "./dist")
-  -x, --prefix-css            Enable autoprefixing of CSS (default: false)
-  --no-scripts                Do not process scripts
-  --no-css                    Do not process stylesheets
-  --no-files                  Do not process static files
-  --no-uris                   Do not process uris
-  -h, --help                  display help for command
-```
-
-#### Path Overrides
-
-Gilbert provides defaults for all paths that follow the Joy naming structure developers are free to override as required to suit their particular directory conventions.
-
-- **-r, --relative-root**: The relative root of all the source files (default: "./src")
-- **-d, --data**: Path to the JSON data file. (default: "./src/data/data.json")
-- **-t, --theme**: Glob to handlebars files (default: "./src/theme/\*_/_.hbs")
-- **-s, --scripts**: Comma separated list of ES Module entry points -(default: "./src/scripts/main.js")
-- **-c, --css**: Comma separated list of stylesheet entry points -(default: "./src/stylesheets/main.css")
-- **-f, --files**: Comma separated list of static file globs (default: "./src/images/\*_/_.\*")
-- **-o, --out**: Output directory (default: "./dist")
-
-#### Additional CSS Options
-
-- **-x, --prefix-css**: Enable vendor prefixes of CSS (default: false). If newer and/or experimental CSS features are used then enabling CSS prefixing with `--prefix-css` will use the data based on current browser popularity and property support to apply prefixes.
-
-  _Note: This is accomplished with [PostCSS's](https://postcss.org/) [Autoprefixer](https://github.com/postcss/autoprefixer) which calls out to the [Can I Use](https://caniuse.com/) website. The extra overhead does increase Gilbert execution time so you may wish to defer this until you are building a release version._
-
-#### Disable Pipelines
-
-While Gilbert is already very fast, the various `--no-*` switches can be used to disale specific pipelines for even more speed. For instance, you may be focusing on template development and not actively editing JS and CSS. In which case adding `--no-scripts --no-css` would disable those pipelines, leaving the last state of generated script and CSS in place in the out directory.
-
-- **--no-scripts**: Disables the scripts pipeline. No scripts will be parsed or written to the output stream.
-- **--no-css**: Disables the stylesheets pipeline. No stylesheets will be parsed or written to the output stream.
-- **--no-files**: Disables the static files pipeline that copies assets from source. No static files will be parsed or written to the output stream.
-- **--no-uris**: Disables the templates pipeline. No template driven files will be parsed or written to the output stream.
-
-#### Housekeeping Options
-
-A couple of options to help get the most out of Gilbert.
-
-- **-h, --help**: Get a summary of all available options at any time
-- **-V, --version**: Output the current version of the Gilbert CLI
-
-### Default Directory Structure
-
-WebProducer expects source files to be found in the following tree structure by default, but they can be overridden using various CLI flags.
+## Quick Start
 
 ```shell
-. (your project root)
-└── src
-    ├── data
-    ├── fonts
-    ├── images
-    ├── scripts
-    ├── stylesheets
-    └── theme
-        ├── common
-        └── templates
+npm install @tforster/gilbert @tforster/gilbert-file @tforster/gilbert-fs
 ```
 
-### Upgrading from 0.9.0 to 1.0.0
+```js
+import Gilbert from "@tforster/gilbert";
+import GilbertFS from "@tforster/gilbert-fs";
 
-There are several breaking changes to be aware of when upgrading to v1.0.0.
+const dataAdapter = new GilbertFS({ base: "./src/data" });
+const templatesAdapter = new GilbertFS({ base: "./src/templates" });
 
-#### New `uris` Property
+const gilbert = new Gilbert({
+  data: { source: dataAdapter.read("**/*.json") },
+  templates: templatesAdapter.read("**/*.hbs"),
+  scripts: ["./src/scripts/main.js"],
+  stylesheets: ["./src/stylesheets/main.css"],
+  staticFiles: new GilbertFS({ base: "./src/files" }).read("**/*"),
+});
 
-Pre 1.0.0 saw the URI keys at the top level of the data structure. E.g.
-
-```JSON
-{
-  "/index": { ... },
-  "/about": { ... },
-  ...
-}
+await gilbert.compile();
+await gilbert.stream.pipeTo(new GilbertFS({ base: "./dist" }).write("./dist"));
 ```
 
-For increased legibility these URIs should be moved to the uris property as in:
-
-```JSON
-{
-  "uris": {
-    "/index": { ... },
-    "/about": { ... },
-    ...
-  },
-  ...
-}
-```
-
-_Note that URI is favoured over URL since the output of Gilbert does not always have to be a web page._
-
-#### `modelName` Change to `webProducerKey`
-
-The `modelName` property used to identify an .hbs template was named so as a direct result of using a [DatoCMS](https://www.datocms.com/) GraphQL source in an early implementation of WebProducer. To be more datasource agnostic and reduce the likelihood of property collisions modelName has been changed to webProducerKey.
-
-In addition, the new webProducerKey can accept path separators to align with richer component based front-end architectures.
-
-For example, consider the following data snippet and related themes directory structure:
-
-```JSON
-{
-  "uris": {
-    "/admin/reports": {
-      ...
-      "webProducerKey": "/admin/report/report"
-    }
-  }
-}
-```
-
-```shell
-. (your project root)
-└── src
-    ├── ...
-    └── pages
-        └── admin
-            ├── ...
-            └── report
-                ├── ...
-                └── report.hbs
-```
+For a full walkthrough, see the [Getting Started tutorial](./docs/tutorials/getting-started.md).
 
 ## API
 
-See how easy Gilbert's simple streams API is with [Use Remote REST API to Create XML files on S3](./examples/use-remote-rest-api-to-create-xml-files-on-s3/README.md). Or check out the [examples](./examples/README.md) directory for others.
+Full API documentation is in [`docs/reference/api.md`](./docs/reference/api.md).
 
-Full API details are coming in the [Developer Guide](/docs/developer-guide.md).
-
-## Known Issues
-
-npm audit reports a high severity vulnerability in the html-minifier package. The advisory link is https://github.com/kangax/html-minifier/issues/1135. While the issue is still outstanding the use of Gilbert is typically constrained to developer workstations and CI/CD instances. It is not used directly in production systems. As such the risk is considered low. However, please use your own judgement and risk assessment.
-
-I will be looking to replace html-minifier with a more secure package in the near future.
+The core entry point is `gilbert.compile()`, which returns a `ReadableStream<GilbertFile>` directly.
+Content sources are not limited to the filesystem — any `ReadableStream<GilbertFile>` is a valid
+input, including `gilbert-github` (GitHub API) and custom adapters (REST APIs, databases, headless
+CMS systems).
 
 ## Change Log
 
@@ -227,7 +133,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
 
 ## Meta
 
-Troy Forster – @tforster – <troy.forster@gmail.com>
+Troy Forster — [@tforster](https://github.com/tforster) — <troy@tforster.com>
 
 See [LICENSE](./LICENSE.txt) for more information.
 

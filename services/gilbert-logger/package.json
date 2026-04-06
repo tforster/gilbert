@@ -1,35 +1,44 @@
 {
-  "name": "@tforster/gilbert-logger",
-  "version": "0.1.0",
+  "author": "Troy Forster <troy@tforster.com>",
+  "bugs": {
+    "url": "https://github.com/tforster/webproducer/issues"
+  },
   "description": "Lightweight async logger for Gilbert static site generator",
-  "type": "module",
-  "main": "lib/index.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "exports": {
     ".": "./lib/index.js"
-  },
-  "scripts": {
-    "test": "node --test tests/*.test.js"
-  },
-  "keywords": [
-    "gilbert",
-    "logger",
-    "async",
-    "performance",
-    "web-api-streams"
-  ],
-  "author": "Troy Forster <troy@tforster.com>",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/tforster/webproducer.git",
-    "directory": "services/gilbert-logger"
-  },
-  "engines": {
-    "node": ">=18.0.0"
   },
   "files": [
     "lib/",
     "README.md",
     "CHANGELOG.md"
-  ]
+  ],
+  "homepage": "https://github.com/tforster/webproducer#readme",
+  "keywords": [
+    "gilbert",
+    "static-site-generator",
+    "text-file-compiler",
+    "web-api-streams",
+    "logger",
+    "async",
+    "performance"
+  ],
+  "license": "MIT",
+  "main": "lib/index.js",
+  "name": "@tforster/gilbert-logger",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/tforster/webproducer.git",
+    "directory": "services/gilbert-logger"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "type": "module",
+  "version": "1.0.0-rc.1"
 }

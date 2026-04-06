@@ -70,7 +70,7 @@ export default class GilbertFile {
       ...options,
     };
 
-    // Initialize using setters for validation (order matters)
+    // Initialise using setters for validation (order matters)
     // 1. First set cwd (base and path depend on it)
     this.cwd = normalizedOptions.cwd || globalThis.process?.cwd?.() || "/";
 
@@ -452,7 +452,7 @@ export default class GilbertFile {
 
   /**
    * @description Checks if the GilbertFile object represents a symbolic link.
-   * Mimics Vinyl's behavior based on README:
+   * Mimics Vinyl's behaviour based on README:
    * - file.isNull() is true
    * - file.stat is an object
    * - file.stat.isSymbolicLink() returns true

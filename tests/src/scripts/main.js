@@ -1,5 +1,5 @@
 // Import common configuration
-import config from "./config.js";
+import "./config.js";
 
 class Main {
   // Private properties

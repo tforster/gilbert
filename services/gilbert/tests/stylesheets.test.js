@@ -7,6 +7,7 @@ import Gilbert from "../lib/index.js";
 import GilbertFS from "@tforster/gilbert-fs";
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
+const rootSrcDir = path.resolve(__dirname, "../../../tests/src");
 
 // Create GilbertFS adapter instance
 const fsAdapter = new GilbertFS();
@@ -25,7 +26,7 @@ await describe("Gilbert Stylesheets Pipeline", { concurrency: 1 }, () => {
   test("should process stylesheets with StopTheParty app structure", async () => {
     await cleanDist();
 
-    const stylesheetsPath = path.join(__dirname, "src", "stylesheets");
+    const stylesheetsPath = path.join(rootSrcDir, "stylesheets");
     const entryPoints = [path.join(stylesheetsPath, "main.css")];
 
     const gilbert = new Gilbert(
@@ -60,7 +61,7 @@ await describe("Gilbert Stylesheets Pipeline", { concurrency: 1 }, () => {
   test("should support custom esbuild options", async () => {
     await cleanDist();
 
-    const stylesheetsPath = path.join(__dirname, "src", "stylesheets");
+    const stylesheetsPath = path.join(rootSrcDir, "stylesheets");
     const entryPoints = [path.join(stylesheetsPath, "main.css")];
 
     const gilbert = new Gilbert(

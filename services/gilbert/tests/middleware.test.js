@@ -12,7 +12,7 @@ import GilbertFS from "@tforster/gilbert-fs";
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
 // Test paths
-const srcDir = resolve("../../tests/src");
+const srcDir = resolve(__dirname, "../../../tests/src");
 const dataDir = resolve(srcDir, "data");
 const templatesDir = resolve(srcDir, "templates");
 

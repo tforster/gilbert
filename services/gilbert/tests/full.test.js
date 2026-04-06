@@ -13,7 +13,7 @@ import Gilbert from "../lib/index.js";
 import GilbertFS from "@tforster/gilbert-fs";
 
 const testDir = new URL(".", import.meta.url).pathname;
-const srcDir = join(testDir, "src");
+const srcDir = resolve(testDir, "../../../tests/src");
 const distDir = join(testDir, "dist");
 
 // Create GilbertFS adapter instances

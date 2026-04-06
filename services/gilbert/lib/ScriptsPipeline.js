@@ -5,6 +5,9 @@ import { build } from "esbuild";
 
 // Project dependencies
 import GilbertFile from "@tforster/gilbert-file";
+import { createLogger } from "@tforster/gilbert-logger";
+
+const logger = createLogger(globalThis.GILBERT_DEBUG === "true");
 
 /**
  * @description: A Gilbert pipeline that takes entrypoints and uses esbuild to bundle, tree-shake, and minify JavaScript files
@@ -27,7 +30,7 @@ export default class ScriptsPipeline {
   }
 
   /**
-   * @description: Processes JavaScript files through esbuild bundler for optimization
+   * @description: Processes JavaScript files through esbuild bundler for optimisation
    * @return {Promise<ReadableStream>}: Web API ReadableStream of bundled files
    * @memberof ScriptsPipeline
    */
@@ -45,9 +48,10 @@ export default class ScriptsPipeline {
           // Create a GilbertFile object matching TemplatePipeline pattern
           // Use virtual root cwd like Utils.vinyl() does
           const gilbertFile = new GilbertFile({
-            cwd: "/", // Virtual root - matches Utils.vinyl() behavior
+            cwd: "/", // Virtual root - matches Utils.vinyl() behaviour
             path: filename, // Just the filename
-            contents: Buffer.from(outputFile.contents),
+            // esbuild already returns Uint8Array when write:false
+            contents: outputFile.contents,
           });
 
           // Enqueue the file to the stream
@@ -92,8 +96,7 @@ export default class ScriptsPipeline {
 
       return result.outputFiles;
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error("Error in ScriptsPipeline.js", err);
+      logger.error("Error in ScriptsPipeline.js", err);
       throw err;
     }
   }

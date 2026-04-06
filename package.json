@@ -1,9 +1,46 @@
 {
-  "author": "Troy Forster <troy.forster@gmail.com> (https://www.tforster.com)",
+  "name": "@tforster/gilbert-monorepo",
+  "version": "1.0.0-rc.1",
+  "private": true,
+  "description": "Workspace container for the Gilbert and GilbertFile modules.",
+  "homepage": "https://github.com/tforster/webproducer#readme",
   "bugs": {
     "url": "https://github.com/tforster/webproducer/issues"
   },
-  "description": "Workspace container for the Gilbert and GilbertFile modules.",
+  "license": "MIT",
+  "author": "Troy Forster <troy.forster@gmail.com> (https://www.tforster.com)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tforster/webproducer.git"
+  },
+  "funding": {
+    "type": "patreon",
+    "url": "https://www.patreon.com/tforster"
+  },
+  "workspaces": [
+    "services/gilbert-cli",
+    "services/gilbert-file",
+    "services/gilbert",
+    "services/gilbert-fs",
+    "services/gilbert-github",
+    "services/gilbert-glob",
+    "services/gilbert-logger",
+    "services/gilbert-r2"
+  ],
+  "type": "module",
+  "scripts": {
+    "build:gilbert-file": "npm run build -w services/gilbert-file",
+    "docs": "jsdoc -c jsdoc.config.json",
+    "docs:clean": "rm -rf docs/api",
+    "docs:serve": "npx http-server docs/api -p 8080",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "test": "npm run test --workspaces --if-present --workspace-concurrency=1",
+    "test:all": "npm run test && npm run test:performance",
+    "test:performance": "node --test tests/performance/performance.test.js"
+  },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20251205.0",
     "@eslint/compat": "^2.0.0",
@@ -22,44 +59,13 @@
     "eslint-plugin-yml": "^1.19.0",
     "globals": "^16.5.0",
     "jsdoc": "^4.0.5",
+    "oxfmt": "^0.43.0",
+    "oxlint": "^1.58.0",
     "prettier": "^3.7.4",
     "yaml-eslint-parser": "^1.3.2"
   },
   "overrides": {
     "glob-parent": "5.1.2",
     "lodash": "4.17.21"
-  },
-  "funding": {
-    "type": "patreon",
-    "url": "https://www.patreon.com/tforster"
-  },
-  "homepage": "https://github.com/tforster/webproducer#readme",
-  "license": "MIT",
-  "name": "@tforster/webproducer-monorepo",
-  "private": true,
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/tforster/webproducer.git"
-  },
-  "scripts": {
-    "build:gilbert-file": "npm run build -w services/gilbert-file",
-    "docs": "jsdoc -c jsdoc.config.json",
-    "docs:clean": "rm -rf docs/api",
-    "docs:serve": "npx http-server docs/api -p 8080",
-    "test": "npm run test --workspaces --if-present",
-    "test:all": "node --test tests/index.test.js --test-concurrency=1",
-    "test:performance": "node --test tests/performance/performance.test.js"
-  },
-  "type": "module",
-  "version": "1.0.0-beta.5",
-  "workspaces": [
-    "services/gilbert-cli",
-    "services/gilbert-file",
-    "services/gilbert",
-    "services/gilbert-fs",
-    "services/gilbert-github",
-    "services/gilbert-glob",
-    "services/gilbert-logger",
-    "services/gilbert-r2"
-  ]
+  }
 }

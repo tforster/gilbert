@@ -34,8 +34,8 @@ class TemplatePipeline {
   constructor(options, readableDataStream, readableTemplatesStream) {
     this.#readableDataStream = readableDataStream;
     this.#readableTemplatesStream = readableTemplatesStream;
-    // Enable debug logging in development or when DEBUG env var is set
-    this.#logger = createLogger(process?.env?.DEBUG === "true" || process?.env?.NODE_ENV === "development");
+    // Enable debug logging when the GILBERT_DEBUG global is set (WinterCG-compatible)
+    this.#logger = createLogger(globalThis.GILBERT_DEBUG === "true");
   }
 
   /**
@@ -67,7 +67,7 @@ class TemplatePipeline {
         logger.debug(`Parsed URI:`, uri);
         const path = uri.uri;
 
-        // Initialize an empty GilbertFile
+        // Initialise an empty GilbertFile
         let gilbertFile = new GilbertFile({});
 
         if (uri.webProducerKey && uri.webProducerKey !== "redirect") {
@@ -83,16 +83,13 @@ class TemplatePipeline {
           logger.debug(`Generated content preview:`, generatedContents.substring(0, 100));
           gilbertFile = new GilbertFile({
             path,
-            contents: Buffer.from(generatedContents),
+            contents: new TextEncoder().encode(generatedContents),
             // contentType: mime.getType(path),
-            cwd: "/", // Virtual root - matches Utils.vinyl() behavior
+            cwd: "/", // Virtual root - matches Utils.vinyl() behaviour
           });
           if (gilbertFile.extname === "" || gilbertFile.extname === ".html") {
-            const htmlString = Buffer.isBuffer(gilbertFile.contents)
-              ? gilbertFile.contents.toString()
-              : gilbertFile.contents.toString();
-
-            const minifiedHtml = SimpleHtmlMinifier.minify(htmlString, {
+            // Use generatedContents directly — avoids decoding what we just encoded
+            const minifiedHtml = SimpleHtmlMinifier.minify(generatedContents, {
               keep_closing_tags: false,
               keep_html_and_head_opening_tags: false,
               allow_removing_spaces_between_attributes: true,
@@ -101,16 +98,16 @@ class TemplatePipeline {
               minify_js: true,
             });
 
-            gilbertFile.contents = Buffer.from(minifiedHtml);
+            gilbertFile.contents = new TextEncoder().encode(minifiedHtml);
             gilbertFile.contentType = "text/html";
           }
         } else if (uri.webProducerKey === "redirect") {
           gilbertFile = new GilbertFile({
             path,
-            contents: Buffer.from(uri.targetAddress),
+            contents: new TextEncoder().encode(uri.targetAddress),
             redirect: 301,
             contentType: "text/html",
-            cwd: "/", // Virtual root - matches Utils.vinyl() behavior
+            cwd: "/", // Virtual root - matches Utils.vinyl() behaviour
           });
         } else {
           logger.debug(`Unexpected condition: page and webProducerKey not found. ${path}, ${uri}`);

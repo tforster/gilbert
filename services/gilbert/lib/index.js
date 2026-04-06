@@ -8,14 +8,8 @@ import ScriptsPipeline from "./ScriptsPipeline.js";
 import StylesheetsPipeline from "./StylesheetsPipeline.js";
 import { createLogger } from "@tforster/gilbert-logger";
 
-// Create async logger with environment-based debug control
-const logger = createLogger(process.env.GILBERT_DEBUG === "true");
-
-// Crude global exception handler
-process.on("uncaughtException", (err) => {
-  // eslint-disable-next-line no-console
-  console.error("Uncaught Exception", err);
-});
+// Enable debug logging when the GILBERT_DEBUG global is set (WinterCG-compatible)
+const logger = createLogger(globalThis.GILBERT_DEBUG === "true");
 
 /**
  * @typedef {Function} DataMiddleware
@@ -53,12 +47,12 @@ class Gilbert {
     this.resources = 0;
     this.size = 0;
 
-    // Initialize Web API streams coordinator
+    // Initialise Web API streams coordinator
     this.#initializeMergeStream();
   }
 
   /**
-   * Initialize the Web API streams merge coordinator
+   * Initialise the Web API streams merge coordinator
    */
   #initializeMergeStream() {
     const self = this;
@@ -110,8 +104,7 @@ class Gilbert {
 
       reader.releaseLock();
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(`Stream ${streamId.toString()} processing failed:`, error);
+      logger.error(`Stream ${streamId.toString()} processing failed:`, error);
     } finally {
       // Remove this pipeline from active set
       this.#activePipelines.delete(streamId);
@@ -180,8 +173,7 @@ class Gilbert {
         logger.debug(`${pipelineName} completed`);
       }
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(`Pipeline ${pipelineName} failed:`, error);
+      logger.error(`Pipeline ${pipelineName} failed:`, error);
       throw error;
     } finally {
       this.#activePipelines.delete(pipelineId);
@@ -279,7 +271,7 @@ class Gilbert {
       }
     }
 
-    // Scripts (JavaScript bundling and optimization)
+    // Scripts (JavaScript bundling and optimisation)
     if (this.#streams.scripts) {
       const scriptsPipeline = new ScriptsPipeline(this.#streams.scripts, this.#streams.scriptsOptions);
       const scriptsStream = await scriptsPipeline.getReadableStream();
@@ -291,7 +283,7 @@ class Gilbert {
       }
     }
 
-    // Stylesheets (CSS bundling and optimization)
+    // Stylesheets (CSS bundling and optimisation)
     if (this.#streams.stylesheets) {
       const stylesheetsPipeline = new StylesheetsPipeline(this.#streams.stylesheets, this.#streams.stylesheetsOptions);
       const stylesheetsStream = await stylesheetsPipeline.getReadableStream();
@@ -333,8 +325,7 @@ class Gilbert {
               // Ignore close errors
             }
           }
-          // eslint-disable-next-line no-console
-          console.error("Pipeline processing failed:", error);
+          logger.error("Pipeline processing failed:", error);
         });
     } else {
       // No pipelines to process, close immediately

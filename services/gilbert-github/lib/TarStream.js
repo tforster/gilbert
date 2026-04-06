@@ -55,11 +55,11 @@ export default class TarStream {
 
     return new TransformStream({
       /**
-       * Initialize the transform stream with state
+       * Initialise the transform stream with state
        * @this {TransformStreamState}
        */
       start() {
-        // Initialize state on the TransformStream's context
+        // Initialise state on the TransformStream's context
         Object.assign(this, state);
       },
 
@@ -239,8 +239,10 @@ export default class TarStream {
     }
 
     const decoder = new TextDecoder("ascii");
-    const name = decoder.decode(headerBuffer.slice(0, 100)).replace(/\0.*$/, "");
-    const sizeStr = decoder.decode(headerBuffer.slice(124, 136)).replace(/\0.*$/, "");
+    // eslint-disable-next-line no-control-regex -- intentional: strips null-byte padding from tar header fields
+    const name = decoder.decode(headerBuffer.slice(0, 100)).replace(/\u0000.*$/, "");
+    // eslint-disable-next-line no-control-regex -- intentional: strips null-byte padding from tar header fields
+    const sizeStr = decoder.decode(headerBuffer.slice(124, 136)).replace(/\u0000.*$/, "");
     const typeFlag = headerBuffer[156];
 
     let type;

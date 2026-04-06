@@ -3,3 +3,4 @@
 
 import "./gilbert-github-read.test.js";
 import "./github-files.test.js";
+import "./tarstream.test.js";

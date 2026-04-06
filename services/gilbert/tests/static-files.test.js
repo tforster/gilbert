@@ -1,16 +1,17 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
-import { readdir, stat, readFile, mkdir, writeFile, rm } from "node:fs/promises";
+import { readdir, stat, readFile, mkdir, rm } from "node:fs/promises";
 
 // Gilbert and dependencies
 import Gilbert from "../lib/index.js";
 import GilbertFS from "@tforster/gilbert-fs";
 
 // Test paths - preserve folder structure from src to dist
-const srcDir = resolve("../../tests/src");
+const __dirname = resolve(new URL(".", import.meta.url).pathname);
+const srcDir = resolve(__dirname, "../../../tests/src");
 const filesDir = resolve(srcDir, "files");
-const distDir = resolve("./tests/dist");
+const distDir = resolve(__dirname, "dist");
 
 // Create GilbertFS adapter instance for testing new constructor pattern
 const fsAdapter = new GilbertFS({ base: srcDir });

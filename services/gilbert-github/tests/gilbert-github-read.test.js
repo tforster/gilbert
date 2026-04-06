@@ -15,6 +15,7 @@ describe("GilbertGitHub Read Operations", { concurrency: 1 }, async () => {
   async function collectFiles(stream) {
     const files = [];
     const reader = stream.getReader();
+    let caughtError = null;
 
     try {
       while (true) {
@@ -22,8 +23,17 @@ describe("GilbertGitHub Read Operations", { concurrency: 1 }, async () => {
         if (done) break;
         files.push(value);
       }
+    } catch (err) {
+      caughtError = err;
     } finally {
       reader.releaseLock();
+    }
+
+    if (caughtError) {
+      // Cancel the stream to abort any in-flight fetch before re-throwing,
+      // preventing async activity from leaking past the test boundary.
+      await stream.cancel().catch(() => {});
+      throw caughtError;
     }
 
     return files;

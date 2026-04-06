@@ -7,9 +7,12 @@ import postcss from "postcss";
 
 // Project dependencies
 import GilbertFile from "@tforster/gilbert-file";
+import { createLogger } from "@tforster/gilbert-logger";
+
+const logger = createLogger(globalThis.GILBERT_DEBUG === "true");
 
 /**
- * @description: A Gilbert pipeline that takes entry points and uses esbuild to bundle, optimize, and minify CSS files
+ * @description: A Gilbert pipeline that takes entry points and uses esbuild to bundle, optimise, and minify CSS files
  * @class StylesheetsPipeline
  */
 export default class StylesheetsPipeline {
@@ -29,7 +32,7 @@ export default class StylesheetsPipeline {
   }
 
   /**
-   * @description: Processes CSS files through esbuild bundler for optimization
+   * @description: Processes CSS files through esbuild bundler for optimisation
    * @return {Promise<ReadableStream>}: Web API ReadableStream of bundled files
    * @memberof StylesheetsPipeline
    */
@@ -46,9 +49,12 @@ export default class StylesheetsPipeline {
 
           // Create a GilbertFile object with virtual root cwd like Utils.vinyl() does
           const gilbertFile = new GilbertFile({
-            cwd: "/", // Virtual root - matches Utils.vinyl() behavior
+            cwd: "/", // Virtual root - matches Utils.vinyl() behaviour
             path: filename, // Just the filename
-            contents: Buffer.from(outputFile.contents),
+            // esbuild returns Uint8Array for each output file when write:false is set.
+            // This pipeline always invokes esbuild; there is currently no passthrough
+            // mode that bypasses bundling for local dev without esbuild.
+            contents: outputFile.contents,
           });
 
           // Enqueue the file to the stream
@@ -98,7 +104,8 @@ export default class StylesheetsPipeline {
         // Check for autoprefixing on CSS files
         if (outputFile.path.endsWith(".css") && this.#esbuildOptions?.autoprefixCss) {
           const autoprefixed = await this.#autoPrefix(outputFile.text);
-          contents = Buffer.from(autoprefixed);
+          // postcss returns a string; encode to Uint8Array for cross-runtime compatibility
+          contents = new TextEncoder().encode(autoprefixed);
         }
 
         processedFiles.push({
@@ -109,8 +116,7 @@ export default class StylesheetsPipeline {
 
       return processedFiles;
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error("Error in StylesheetsPipeline.js", err);
+      logger.error("Error in StylesheetsPipeline.js", err);
       throw err;
     }
   }

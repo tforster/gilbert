@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-
 // Third party dependencies
 import GilbertFile from "@tforster/gilbert-file";
 import { Glob } from "@tforster/gilbert-glob";
@@ -9,7 +7,7 @@ import { createLogger } from "@tforster/gilbert-logger";
 import TarStream from "./TarStream.js";
 
 // Create async logger with environment-based debug control
-const logger = createLogger(process.env.GILBERT_DEBUG === "true");
+const logger = createLogger(globalThis.GILBERT_DEBUG === "true");
 
 /**
  * @typedef {Object} GilbertGitHubOptions
@@ -106,7 +104,7 @@ export default class GilbertGitHub {
         signal: AbortSignal.timeout(30000), // 30 second timeout
       };
 
-      console.log(`Fetching archive from: ${url}`);
+      logger.debug(`Fetching archive from: ${url}`);
 
       // Fetch the tar.gz archive from GitHub
       const response = await fetch(url, fetchOptions);
@@ -119,7 +117,7 @@ export default class GilbertGitHub {
       const decompressionStream = new DecompressionStream("gzip");
       const untarStream = new TarStream().untar();
 
-      console.log("Created filtered pipeline components, connecting...");
+      logger.debug("Created filtered pipeline components, connecting...");
 
       // Stream the response through decompression and extraction
       await response.body
@@ -129,25 +127,26 @@ export default class GilbertGitHub {
           new WritableStream({
             async write(fileObject) {
               const gilbertFile = new GilbertFile(fileObject); // Convert to GilbertFile for consistency
-              console.log(`Processing file: "${gilbertFile.path}" (type: ${gilbertFile.contentType}, size: ${gilbertFile.size})`);
+              logger.debug(`Processing file: "${gilbertFile.path}" (type: ${gilbertFile.contentType}, size: ${gilbertFile.size})`);
 
               // Check if file matches any of the patterns
               if (compiledGlobs.some((glob) => glob.test(gilbertFile.path))) {
-                console.log(`Matched pattern: ${gilbertFile.path}`);
+                logger.debug(`Matched pattern: ${gilbertFile.path}`);
                 streamController.enqueue(gilbertFile);
               }
             },
             close() {
-              console.log("Filtered pipeline processing complete.");
+              logger.debug("Filtered pipeline processing complete.");
               streamController.close();
             },
           })
         );
 
-      console.log("Filtered pipeline completed successfully.");
+      logger.debug("Filtered pipeline completed successfully.");
     } catch (error) {
+      // Error the stream to signal consumers; do not re-throw since this method
+      // is called without await in read() and a thrown rejection would be unhandled.
       streamController.error(error);
-      throw error;
     }
   }
 
@@ -176,7 +175,7 @@ export default class GilbertGitHub {
       async write(fileObject) {
         // For GitHub adapter, writing might involve pushing to GitHub API
         // For now, this is a placeholder that could be implemented for GitHub uploads
-        console.log(`Would write ${fileObject.path} to ${destination}`);
+        logger.debug(`Would write ${fileObject.path} to ${destination}`);
         throw new Error("GitHub write operations not yet implemented");
       },
     });

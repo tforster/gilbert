@@ -1,37 +1,39 @@
 {
-  "author": "Troy Forster <troy.forster@gmail.com> (http://www.tforster.com/)",
+  "author": "Troy Forster <troy@tforster.com>",
   "bugs": {
-    "url": "  https://github.com/tforster/webproducer/issues"
+    "url": "https://github.com/tforster/webproducer/issues"
   },
   "dependencies": {
-    "@tforster/gilbert-file": "^0.1.0",
-    "@tforster/gilbert-logger": "^0.1.0",
+    "@tforster/gilbert-file": "^1.0.0-rc.1",
+    "@tforster/gilbert-logger": "^1.0.0-rc.1",
     "autoprefixer": "^10.4.22",
     "esbuild": "^0.27.1",
     "handlebars": "^4.7.8",
     "postcss": "^8.5.6"
   },
-  "description": "",
+  "description": "Data-driven static site generator using Web API streams",
   "devDependencies": {
-    "@tforster/gilbert-fs": "^0.1.0",
+    "@tforster/gilbert-fs": "^1.0.0-rc.1",
     "marked": "^17.0.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   },
   "exports": {
     ".": "./lib/index.js"
   },
   "files": [
-    "lib/"
+    "lib/",
+    "README.md"
   ],
   "homepage": "https://github.com/tforster/webproducer#readme",
   "keywords": [
     "gilbert",
-    "text",
-    "file",
-    "compiler",
-    "static",
-    "site",
-    "generator",
-    "webproducer"
+    "static-site-generator",
+    "text-file-compiler",
+    "web-api-streams",
+    "handlebars",
+    "esbuild"
   ],
   "license": "MIT",
   "name": "@tforster/gilbert",
@@ -39,6 +41,7 @@
     "access": "public"
   },
   "repository": {
+    "directory": "services/gilbert",
     "type": "git",
     "url": "git+ssh://git@github.com/tforster/webproducer.git"
   },
@@ -48,5 +51,5 @@
     "test:individual": "node --test tests/**/*.test.js"
   },
   "type": "module",
-  "version": "1.0.0-beta.5"
+  "version": "1.0.0-rc.1"
 }

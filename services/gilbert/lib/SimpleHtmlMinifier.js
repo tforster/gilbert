@@ -4,7 +4,7 @@
  * - Remove HTML comments
  * - Collapse whitespace
  * - Remove unnecessary spaces around tags
- * - Basic attribute optimization
+ * - Basic attribute optimisation
  */
 
 class SimpleHtmlMinifier {

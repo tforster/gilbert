@@ -1,5 +1,8 @@
 {
-  "author": "Troy Forster <troy.forster@gmail.com> (http://www.tforster.com/)",
+  "author": "Troy Forster <troy@tforster.com>",
+  "bugs": {
+    "url": "https://github.com/tforster/webproducer/issues"
+  },
   "dependencies": {},
   "description": "Virtual file format for Gilbert",
   "devDependencies": {
@@ -7,16 +10,32 @@
     "jsdoc-to-markdown": "^9.1.3",
     "mime-db": "^1.54.0"
   },
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "exports": {
     ".": "./lib/index.js"
   },
   "files": [
-    "lib/"
+    "lib/",
+    "README.md"
+  ],
+  "homepage": "https://github.com/tforster/webproducer#readme",
+  "keywords": [
+    "gilbert",
+    "static-site-generator",
+    "text-file-compiler",
+    "web-api-streams",
+    "virtual-file"
   ],
   "license": "MIT",
   "main": "lib/index.js",
   "name": "@tforster/gilbert-file",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
+    "directory": "services/gilbert-file",
     "type": "git",
     "url": "git+ssh://git@github.com/tforster/webproducer.git"
   },
@@ -29,5 +48,5 @@
     "test:watch": "node --test --watch tests/**/*.test.js"
   },
   "type": "module",
-  "version": "0.1.0"
+  "version": "1.0.0-rc.1"
 }

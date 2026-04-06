@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /// <reference types="@cloudflare/workers-types" />
 
 // Third party dependencies
@@ -119,7 +118,7 @@ export default class GilbertR2 {
         try {
           await GilbertR2.#writeFile(file, bucket, prefix, maxFileSize, cacheControl, customMetadata);
         } catch (error) {
-          console.error(`GilbertR2.write: Error writing file ${file.path}: ${error.message}`);
+          logger.error(`GilbertR2.write: Error writing file ${file.path}: ${error.message}`);
           controller.error(error);
         }
       },
@@ -138,7 +137,7 @@ export default class GilbertR2 {
        * @param {any} reason - Reason for abort
        */
       abort(reason) {
-        console.error("GilbertR2.write: Stream aborted:", reason);
+        logger.error("GilbertR2.write: Stream aborted:", reason);
       },
     });
   }
@@ -191,7 +190,7 @@ export default class GilbertR2 {
         // Pipe the original stream through the FixedLengthStream
         // Don't await - let it run in the background
         file.contents.pipeTo(writable).catch((error) => {
-          console.error(`GilbertR2: Error piping stream for ${file.path}:`, error);
+          logger.error(`GilbertR2: Error piping stream for ${file.path}:`, error);
         });
 
         // Use the readable side for R2

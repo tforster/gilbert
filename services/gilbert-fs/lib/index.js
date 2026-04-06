@@ -8,7 +8,7 @@ import { Glob } from "@tforster/gilbert-glob";
 import { createLogger } from "@tforster/gilbert-logger";
 
 // Create async logger with environment-based debug control
-const logger = createLogger(process.env.GILBERT_DEBUG === "true");
+const logger = createLogger(globalThis.GILBERT_DEBUG === "true");
 
 /**
  * @typedef {Object} GilbertFSOptions
@@ -83,8 +83,7 @@ export default class GilbertFS {
           try {
             await GilbertFS.#writeFile(file, basePath);
           } catch (error) {
-            // eslint-disable-next-line no-console
-            console.error(`GilbertFS.write: Error writing file ${file.path}:`, error);
+            logger.error(`GilbertFS.write: Error writing file ${file.path}:`, error);
             controller.error(error);
           }
         },
@@ -103,8 +102,7 @@ export default class GilbertFS {
          * @param {any} reason - Reason for abort
          */
         abort(reason) {
-          // eslint-disable-next-line no-console
-          console.error("GilbertFS.write: Stream aborted:", reason);
+          logger.error("GilbertFS.write: Stream aborted:", reason);
         },
       },
       options

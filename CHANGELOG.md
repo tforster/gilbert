@@ -13,6 +13,19 @@ Each workspace/package maintains its own `CHANGELOG.md` for package-specific cha
 - [services/gilbert-cli/CHANGELOG.md](./services/gilbert-cli/CHANGELOG.md)
 - [services/gilbert-file/CHANGELOG.md](./services/gilbert-file/CHANGELOG.md)
 
+## [v1.0.0-rc.1](https://github.com/tforster/webproducer/compare/v1.0.0-beta.5...v1.0.0-rc.1) - 2025-06-09
+
+### Changed
+
+- Significant refactoring to move from Node proprietary APIs to WinterCG WebAPI standards, improving runtime compatibility and future-proofing the codebase.
+- Updated all stream handling to use Web API streams (ReadableStream, TransformStream, WritableStream) instead of Node.js streams.
+- Refactored file handling to use in-memory GilbertFile objects instead of relying on filesystem paths, enabling greater flexibility and performance.
+- Updated documentation to reflect architectural changes and new usage patterns.
+- Removed the Gilbert CLI for now, with plans to reintroduce it in a future release with a more robust architecture and easier interface.
+- Bumped all dependencies to their latest versions, ensuring compatibility with the new architecture and improving security and performance.
+- Removed all console.log() statements from the codebase to clean up output and improve performance.
+- Added comprehensive test coverage for the new architecture, including unit tests for core functionality and integration tests for end-to-end workflows.
+
 ## [v1.0.0-beta.5](https://github.com/tforster/webproducer/compare/v1.0.0-beta.4...v1.0.0-beta.5) - 2025-06-09
 
 ### Changed
@@ -54,7 +67,7 @@ Each workspace/package maintains its own `CHANGELOG.md` for package-specific cha
 
 - Complete overhaul and ground-up re-architecture of WebProducer with performance and reusability in mind.
 - Core is much leaner (just 6 dependencies), expects (mostly) readable streams for input and provides a single writable stream as output.
-- CLI utility provided: `npx @tforster/webproducer`.
+- CLI utility provided: `npx @tforster/gilbert`.
 - Pipelines can be selectively enabled/disabled for flexible usage.
 
 ---
@@ -159,8 +172,4 @@ Each workspace/package maintains its own `CHANGELOG.md` for package-specific cha
 
 - Git repository created and proof-of-concept code added to /src directory.
 
-[Unreleased]: https://github.com/tforster/webproducer/compare/v1.0.0-beta.2...HEAD
-[v1.0.0-beta.2]: https://github.com/tforster/webproducer/compare/v1.0.0-beta.1...v1.0.0-beta.2
-[v1.0.0-beta.1]: https://github.com/tforster/webproducer/compare/v1.0.0-beta.0...v1.0.0-beta.1
-[v1.0.0-beta.0]: https://github.com/tforster/webproducer/compare/v1.0.0...v1.0.0-beta.0
 [v1.0.0]: https://github.com/tforster/webproducer/releases/tag/v1.0.0

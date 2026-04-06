@@ -39,11 +39,11 @@ Requirements for building, testing, and deploying Gilbert projects. Note the ver
 
 ## Usage
 
-1. Clone the WebProducer repository:
+1. Clone the Gilbert monorepo:
 
    ```bash
    git clone git@github.com:tforster/webproducer.git
-   cd webproducer/Gilbert
+   cd webproducer
    ```
 
 2. Install dependencies:

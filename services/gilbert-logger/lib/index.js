@@ -1,6 +1,6 @@
 /**
  * @fileoverview Lightweight async logger for Gilbert static site generator
- * @description Provides zero-dependency, runtime-agnostic logging with async behavior when enabled
+ * @description Provides zero-dependency, runtime-agnostic logging with async behaviour when enabled
  * and zero overhead when disabled. Uses setTimeout(..., 0) for WinterCG compatibility.
  */
 

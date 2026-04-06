@@ -1,4 +1,6 @@
-import { Readable } from "node:stream";
+// WebStreamUtils.js — Web API stream utility helpers for Gilbert
+//
+// WinterCG-compliant. No Node.js built-in imports.
 export default class WebStreamUtils {
   /**
    * @description Creates a Web API WritableStream that processes file objects into an array
@@ -59,28 +61,5 @@ export default class WebStreamUtils {
       await writer.close();
       reader.releaseLock();
     }
-  }
-
-  /**
-   * Converts a Web API ReadableStream to a Node.js Readable stream for compatibility
-   */
-  static webStreamToNodeStream(webStream) {
-    const reader = webStream.getReader();
-
-    return new Readable({
-      objectMode: true,
-      async read() {
-        try {
-          const { done, value } = await reader.read();
-          if (done) {
-            this.push(null); // End the stream
-          } else {
-            this.push(value);
-          }
-        } catch (error) {
-          this.destroy(error);
-        }
-      },
-    });
   }
 }

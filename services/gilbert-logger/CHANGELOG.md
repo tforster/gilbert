@@ -11,11 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release of gilbert-logger
 - `createLogger(debug)` factory function for creating logger instances
-- Async logging support using `setTimeout(..., 0)` for non-blocking behavior
+- Async logging support using `setTimeout(..., 0)` for non-blocking behaviour
 - Zero-overhead no-op functions when logging is disabled
 - Support for `log`, `warn`, `debug` (async) and `error` (synchronous) methods
 - `isEnabled()` method to check logger state
-- Comprehensive test suite with async behavior validation
+- Comprehensive test suite with async behaviour validation
 - Performance benchmarking tests
 - Full JSDoc documentation
 - Zero-dependency implementation

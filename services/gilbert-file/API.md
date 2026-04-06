@@ -437,7 +437,7 @@ Checks if the GilbertFile object represents a regular file.
 ### GilbertFile.isSymbolic() ⇒ <code>boolean</code>
 
 Checks if the GilbertFile object represents a symbolic link.
-Mimics Vinyl's behavior based on README:
+Mimics Vinyl's behaviour based on README:
 
 - file.isNull() is true
 - file.stat is an object

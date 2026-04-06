@@ -8,10 +8,11 @@ import Gilbert from "../lib/index.js";
 import GilbertFS from "@tforster/gilbert-fs";
 
 // Test paths
-const srcDir = resolve("../../tests/src");
+const __dirname = resolve(new URL(".", import.meta.url).pathname);
+const srcDir = resolve(__dirname, "../../../tests/src");
 const templatesDir = resolve(srcDir, "templates");
 const dataDir = resolve(srcDir, "data");
-const distDir = resolve("./tests/dist");
+const distDir = resolve(__dirname, "dist");
 
 // Create GilbertFS adapter instances for testing
 const dataAdapter = new GilbertFS({ base: dataDir });

@@ -9,7 +9,6 @@ import GilbertFS from "../lib/index.js";
 
 // Test paths
 const TEST_SRC_DIR = "../../tests/src/files";
-const TEST_DIST_DIR = "./tests/dist";
 
 describe("GilbertFS Read Operations", { concurrency: 1 }, async () => {
   // Helper function to collect all files from a ReadableStream
@@ -305,13 +304,13 @@ describe("GilbertFS Read Operations", { concurrency: 1 }, async () => {
     assert.ok(dotfile, "Should find .dotfile in results");
     assert.ok(dotfile.relative === ".dotfile", "Should have correct relative path");
 
-    // Test that dotfiles are excluded from normal patterns (Unix behavior)
+    // Test that dotfiles are excluded from normal patterns (Unix behaviour)
     const normalStream = fs.read("*");
     const normalFiles = await collectFiles(normalStream);
     const hasDotfile = normalFiles.some((file) => file.path.endsWith(".dotfile"));
     assert.ok(!hasDotfile, "Dotfiles should be excluded from * pattern");
 
-    // Test that **/* also excludes dotfiles (Unix behavior)
+    // Test that **/* also excludes dotfiles (Unix behaviour)
     const allStream = fs.read("**/*");
     const allFiles = await collectFiles(allStream);
     const hasAllDotfile = allFiles.some((file) => file.path.endsWith(".dotfile"));

@@ -1,5 +1,5 @@
 /**
- * @fileoverview Tests for gilbert-logger functionality and async behavior
+ * @fileoverview Tests for gilbert-logger functionality and async behaviour
  */
 
 import { test, describe } from "node:test";
@@ -64,7 +64,7 @@ describe("Gilbert Logger Tests", { concurrency: 1 }, () => {
     logger.debug("async debug");
     results.push("after debug call");
 
-    // Should execute immediately (async behavior)
+    // Should execute immediately (async behaviour)
     assert.deepStrictEqual(results, ["after log call", "after warn call", "after debug call"]);
 
     // Wait for async operations to complete
@@ -138,7 +138,7 @@ describe("Gilbert Logger Tests", { concurrency: 1 }, () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
   });
 
-  test("async behavior validation with timing", async () => {
+  test("async behaviour validation with timing", async () => {
     const logger = createLogger(true);
     const timeline = [];
 
@@ -164,7 +164,7 @@ describe("Gilbert Logger Tests", { concurrency: 1 }, () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
   });
 
-  test("default parameter behavior", () => {
+  test("default parameter behaviour", () => {
     // createLogger() with no args should default to disabled
     const defaultLogger = createLogger();
     assert.strictEqual(defaultLogger.isEnabled(), false);
