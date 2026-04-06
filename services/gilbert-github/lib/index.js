@@ -161,10 +161,8 @@ export default class GilbertGitHub {
        * Start method called when the stream is created
        */
       start() {
-        // Log initialization for debugging
-        if (process.env.NODE_ENV !== "production") {
-          logger.debug(`GilbertGitHub.write: Initialized for destination: ${destination}`);
-        }
+        // Log initialization for debugging using the existing runtime-safe logger configuration
+        logger.debug(`GilbertGitHub.write: Initialized for destination: ${destination}`);
       },
 
       /**
