@@ -66,7 +66,7 @@ Requirements for building, testing, and deploying Gilbert projects. Note the ver
 
 ## Documentation
 
-For comprehensive documentation, see the [Gilbert Developer Guide](../../docs/developer-guide-working.md), which covers:
+For comprehensive documentation, see the [Gilbert Developer Guide](../../docs/developer-guide.md), which covers:
 
 - **Getting Started**: Quick setup and basic usage patterns
 - **Core Architecture**: Detailed explanation of stream processing and pipeline architecture

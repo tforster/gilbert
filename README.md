@@ -38,7 +38,7 @@ and merges it with in-memory Handlebars templates, generating each page on the f
   portable across Node.js ≥20, Deno, Bun, and Cloudflare Workers.
 
 - **Concurrent pipelines**: Templates, Scripts, Stylesheets, and Static Files run as four
-  concurrent pipelines. A validated 200+ page build with all four pipelines completes in ~400ms
+  concurrent pipelines. A validated 200+ page build with all four pipelines completes in ~200ms
   on a modest workstation.
 
 - **Decoupled adapters**: Gilbert core accepts and returns streams. Filesystem I/O, GitHub API

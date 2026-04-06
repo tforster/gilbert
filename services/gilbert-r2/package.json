@@ -19,8 +19,7 @@
   },
   "files": [
     "lib/",
-    "README.md",
-    "CHANGELOG.md"
+    "README.md"
   ],
   "homepage": "https://github.com/tforster/gilbert#readme",
   "keywords": [

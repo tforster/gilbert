@@ -12,9 +12,6 @@ import { createLogger } from "@tforster/gilbert-logger";
 // Web API Streams utilities
 import WebStreamUtils from "./WebStreamUtils.js";
 
-// TODO: 1. Expect dataStream to be type object of individual URI objects;
-// TODO: 2. Wait for themeStream to complete loading to memory and THEN pipe dataStream to themeStream
-
 class TemplatePipeline {
   // Private properties
   /** @type {ReadableStream} */

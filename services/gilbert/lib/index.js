@@ -136,13 +136,9 @@ class Gilbert {
   #enqueueFile(file) {
     // Check for contents before incrementing the size
     if (file.contents) {
-      this.size += file.contents.length;
+      // Use GilbertFile.size (null for ReadableStream, byte count for Uint8Array)
+      this.size += file.size ?? 0;
       this.resources++;
-
-      // Set content type if missing - deprecated? Should be automatic in gilbert-file now
-      // if (!file.contentType) {
-      //   file.contentType = file.getMimeType(file.path);
-      // }
     }
 
     // Add to output stream

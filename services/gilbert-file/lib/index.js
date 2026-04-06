@@ -164,7 +164,7 @@ export default class GilbertFile {
     if (mimeType) {
       this.#contentType = mimeType;
     }
-    // Note: If getMimeType returns null, we keep the existing contentType
+    // Note: getMimeType always returns a string; the guard above is retained defensively
   }
 
   /**
