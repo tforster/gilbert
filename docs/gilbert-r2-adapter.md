@@ -1,5 +1,9 @@
 # Gilbert R2 Adapter RSP <!-- omit in toc -->
 
+> This file has moved to [reference/gilbert-r2-adapter-rsp.md](./reference/gilbert-r2-adapter-rsp.md).
+
+---
+
 > Instructions
 >
 > This is a template for creating a Requirements, Specification and Plan (RSP) document. Replace the placeholder text with your specific information. It is intended for an AI agent to use to create a new feature.

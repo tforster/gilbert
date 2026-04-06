@@ -1,4 +1,16 @@
-# Architectural Decision Records
+# Architectural Decision Records <!-- omit in toc -->
+
+ADRs have been moved to the [Explanation](./explanation/README.md) section.
+
+| ADR                                                        | Document                                                                           |
+| :--------------------------------------------------------- | :--------------------------------------------------------------------------------- |
+| ADR-001: Migration from Node.js Streams to Web API Streams | [explanation/adr-001-web-api-streams.md](./explanation/adr-001-web-api-streams.md) |
+
+[← Back to Documentation](./README.md)
+
+---
+
+> The original content below is preserved for reference but superseded by the link above.
 
 ## ADR-001: Migration from Node.js Streams to Web API Streams
 

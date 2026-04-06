@@ -2,6 +2,9 @@
 
 Gilbert ~~WebProducer~~ is a data-driven tool for highly performant production of websites and web applications.
 
+> [!IMPORTANT]
+> **Full documentation is in [`docs/`](./docs/README.md).** Tutorials, how-to guides, API reference, and architectural explanations are all there, organised by the [Diátaxis framework](https://diataxis.fr/).
+
 ## Table of Contents <!-- omit in toc -->
 
 - [About](#about)

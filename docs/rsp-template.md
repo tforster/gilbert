@@ -1,5 +1,10 @@
 # Requirements, Specification and Plan (Template) <!-- omit in toc -->
 
+> This file has moved to [reference/rsp-template.md](./reference/rsp-template.md).
+
+---
+
+
 > Instructions
 >
 > This is a template for creating a Requirements, Specification and Plan (RSP) document. Replace the placeholder text with your specific information. It is intended for an AI agent to use to create a new feature.
