@@ -6,7 +6,7 @@
   "main": "index.js",
   "scripts": {
     "build": "node test-runner.js",
-    "generate-data": "node generate-data.js"
+    "generate-data": "node generate-test-data.js"
   },
   "dependencies": {
     "handlebars": "^4.7.8"
