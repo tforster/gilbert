@@ -1,6 +1,7 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { resolve } from "node:path";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { readdir, readFile, rm } from "node:fs/promises";
 
 // Gilbert and dependencies
@@ -8,7 +9,8 @@ import Gilbert from "../lib/index.js";
 import GilbertFS from "@tforster/gilbert-fs";
 
 // Test paths
-const __dirname = resolve(new URL(".", import.meta.url).pathname);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 const srcDir = resolve(__dirname, "../../../tests/src");
 const templatesDir = resolve(srcDir, "templates");
 const dataDir = resolve(srcDir, "data");
