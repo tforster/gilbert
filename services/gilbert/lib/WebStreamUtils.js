@@ -31,6 +31,7 @@ export default class WebStreamUtils {
    * Waits for Web API streams to complete
    */
   static async streamsFinish(streams) {
+    // TODO: Deprecate this in favour of using the stream's promises e.g., closed for WritableStream, locked for ReadableStream)
     const promises = streams.map((stream) => {
       if (stream.closed !== undefined) {
         // WritableStream
