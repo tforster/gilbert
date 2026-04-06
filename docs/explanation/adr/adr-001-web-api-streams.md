@@ -152,4 +152,4 @@ await Promise.all([stream1.pipeTo(sink1), stream2.pipeTo(sink2)]);
 - [Cloudflare Workers Streams Documentation](https://developers.cloudflare.com/workers/runtime-apis/streams/)
 - [Node.js Web Streams Documentation](https://nodejs.org/api/webstreams.html)
 
-[← Back to Explanation](./README.md)
+[← Back to Explanation](./../README.md)

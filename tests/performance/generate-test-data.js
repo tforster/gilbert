@@ -288,7 +288,7 @@ async function generateTestImages() {
 
       execSync(command, { stdio: "ignore" });
     } catch (error) {
-      console.log(`⚠️  Failed to generate ${config.name}: ${error.message}`);
+      console.log(`⚠️  Failed to generate ${config.name}: ${error}`);
     }
   }
 
@@ -478,8 +478,8 @@ async function generateAllTestData() {
     console.log("  🖼️  src/files/ (test image assets)");
     console.log("\n💡 These files are .gitignored and will be regenerated as needed.");
   } catch (error) {
-    console.error("❌ Test data generation failed:", error.message);
-    console.error(error.stack);
+    console.error("❌ Test data generation failed:", error);
+    console.error(error);
     process.exit(1);
   }
 }

@@ -241,7 +241,7 @@ export default class GilbertFS {
                     if (file && !hasErrored) {
                       controller.enqueue(file);
                     }
-                  } catch (error) {
+                  } catch (/** @type {any} */ error) {
                     // In strict mode, fail fast
                     if (strict) {
                       hasErrored = true;
@@ -249,12 +249,11 @@ export default class GilbertFS {
                       return;
                     }
                     // In non-strict mode, log and continue
-                    // eslint-disable-next-line no-console
-                    console.warn(`GilbertFS: Skipping file ${filePath}: ${error.message}`);
+                    logger.warn(`GilbertFS: Skipping file ${filePath}: ${error.message}`);
                   }
                 }
               }
-            } catch (error) {
+            } catch (/** @type {any} */ error) {
               // In strict mode, fail fast
               if (strict) {
                 hasErrored = true;
@@ -262,8 +261,7 @@ export default class GilbertFS {
                 return;
               }
               // In non-strict mode, log and continue
-              // eslint-disable-next-line no-console
-              console.warn(`GilbertFS: Skipping pattern ${searchPattern}: ${error.message}`);
+              logger.warn(`GilbertFS: Skipping pattern ${searchPattern}: ${error.message}`);
             }
           }
 
@@ -306,7 +304,7 @@ export default class GilbertFS {
           }
         }
       }
-    } catch (error) {
+    } catch (/** @type {any} */ error) {
       // Directory might not exist or be accessible, skip it
       if (error.code !== "ENOENT" && error.code !== "EACCES") {
         throw error;
@@ -352,14 +350,13 @@ export default class GilbertFS {
         contents,
         stat: stats,
       });
-    } catch (error) {
+    } catch (/** @type {any} */ error) {
       // Use instance strict setting for error handling
       if (this.#strict) {
         throw new Error(`Failed to create GilbertFile for ${filePath}: ${error.message}`);
       } else {
         // In non-strict mode, log and return null
-        // eslint-disable-next-line no-console
-        console.warn(`GilbertFS: Skipping file ${filePath}: ${error.message}`);
+        logger.warn(`GilbertFS: Skipping file ${filePath}: ${error.message}`);
         return null;
       }
     }

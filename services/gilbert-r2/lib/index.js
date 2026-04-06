@@ -117,7 +117,7 @@ export default class GilbertR2 {
       async write(file, controller) {
         try {
           await GilbertR2.#writeFile(file, bucket, prefix, maxFileSize, cacheControl, customMetadata);
-        } catch (error) {
+        } catch (/** @type {any} */ error) {
           logger.error(`GilbertR2.write: Error writing file ${file.path}: ${error.message}`);
           controller.error(error);
         }
@@ -283,7 +283,7 @@ export default class GilbertR2 {
       if (globalThis.GILBERT_DEBUG === "true") {
         logger.debug(`GilbertR2.write: Uploaded ${key} (${contentLength} bytes, cache: ${cacheSeconds}s)`);
       }
-    } catch (error) {
+    } catch (/** @type {any} */ error) {
       throw new Error(`GilbertR2: Failed to upload ${key} to R2: ${error.message}`);
     }
   }
