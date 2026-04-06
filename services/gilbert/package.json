@@ -1,35 +1,39 @@
 {
-  "author": "Troy Forster <troy.forster@gmail.com> (http://www.tforster.com/)",
+  "author": "Troy Forster <troy@tforster.com>",
   "bugs": {
-    "url": "  https://github.com/tforster/webproducer/issues"
+    "url": "https://github.com/tforster/gilbert/issues"
   },
   "dependencies": {
-    "autoprefixer": "^10.4.20",
-    "esbuild": "^0.25.0",
-    "gilbert-file": "@tforster/gilbert-file@1.0.0-beta.5",
+    "@tforster/gilbert-file": "^1.0.0-rc.1",
+    "@tforster/gilbert-logger": "^1.0.0-rc.1",
+    "autoprefixer": "^10.4.22",
+    "esbuild": "^0.27.1",
     "handlebars": "^4.7.8",
-    "html-minifier": "^4.0.0",
-    "mime": "^4.0.6",
-    "minimatch": "^10.0.1",
-    "postcss": "^8.4.49"
+    "postcss": "^8.5.6"
   },
-  "description": "",
+  "description": "Data-driven static site generator using Web API streams",
+  "devDependencies": {
+    "@tforster/gilbert-fs": "^1.0.0-rc.1",
+    "marked": "^17.0.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "exports": {
     ".": "./lib/index.js"
   },
   "files": [
-    "lib/"
+    "lib/",
+    "README.md"
   ],
-  "homepage": "https://github.com/tforster/webproducer#readme",
+  "homepage": "https://github.com/tforster/gilbert#readme",
   "keywords": [
     "gilbert",
-    "text",
-    "file",
-    "compiler",
-    "static",
-    "site",
-    "generator",
-    "webproducer"
+    "static-site-generator",
+    "text-file-compiler",
+    "web-api-streams",
+    "handlebars",
+    "esbuild"
   ],
   "license": "MIT",
   "name": "@tforster/gilbert",
@@ -37,12 +41,15 @@
     "access": "public"
   },
   "repository": {
+    "directory": "services/gilbert",
     "type": "git",
-    "url": "git+ssh://git@github.com/tforster/webproducer.git"
+    "url": "git+ssh://git@github.com/tforster/gilbert.git"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test tests/index.test.js",
+    "test:all": "node --test tests/**/*.test.js",
+    "test:individual": "node --test tests/**/*.test.js"
   },
   "type": "module",
-  "version": "1.0.0-beta.5"
+  "version": "1.0.0-rc.1"
 }

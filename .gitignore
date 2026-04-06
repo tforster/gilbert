@@ -4,6 +4,17 @@ dist
 .env
 stack
 test
+test-output
+
+# Generated test data
+tests/performance/src/data/
+tests/performance/src/files/
+tests/performance/data.json
+
+# Wrangler local development cache and state
+.wrangler/
+
+# Generated documentation
 
 ### Misc. Tooling ###
 
@@ -329,6 +340,11 @@ paket-files/
 # JetBrains Rider
 .idea/
 *.sln.iml
+
+# VSCode specific files
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
 
 # CodeRush
 .cr/

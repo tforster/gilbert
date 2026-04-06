@@ -1,0 +1,51 @@
+{
+  "author": "Troy Forster <troy@tforster.com>",
+  "bugs": {
+    "url": "https://github.com/tforster/gilbert/issues"
+  },
+  "dependencies": {
+    "@tforster/gilbert-file": "^1.0.0-rc.1",
+    "@tforster/gilbert-logger": "^1.0.0-rc.1"
+  },
+  "description": "Cloudflare R2 adapter for Gilbert using Web API streams",
+  "devDependencies": {
+    "wrangler": "^4.53.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "exports": {
+    ".": "./lib/index.js"
+  },
+  "files": [
+    "lib/",
+    "README.md"
+  ],
+  "homepage": "https://github.com/tforster/gilbert#readme",
+  "keywords": [
+    "gilbert",
+    "static-site-generator",
+    "text-file-compiler",
+    "web-api-streams",
+    "cloudflare",
+    "r2",
+    "adapter"
+  ],
+  "license": "MIT",
+  "main": "lib/index.js",
+  "name": "@tforster/gilbert-r2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/tforster/gilbert.git",
+    "directory": "services/gilbert-r2"
+  },
+  "scripts": {
+    "test": "node --test tests/**/*.test.js",
+    "test:integration": "wrangler dev tests/integration-worker.js --local --persist"
+  },
+  "type": "module",
+  "version": "1.0.0-rc.1"
+}

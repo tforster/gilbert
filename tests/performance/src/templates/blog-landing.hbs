@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+{{> components/head.hbs}}
+<body class="blog-landing-page">
+  {{> components/header.hbs}}
+  
+  <main class="main-content">
+    <div class="container">
+      <header class="page-header">
+        <h1>{{pageTitle}}</h1>
+        <p class="page-subtitle">{{pageSubtitle}}</p>
+      </header>
+      
+      <div class="blog-intro">
+        <h2>{{blogIntroTitle}}</h2>
+        <div class="blog-intro-content">
+          {{blogIntroContent}}
+        </div>
+      </div>
+      
+      <section class="blog-posts">
+        <h2>{{recentPostsTitle}}</h2>
+        <div class="posts-grid">
+          {{#each recentPosts}}
+          <article class="post-card">
+            <h3><a href="{{url}}">{{title}}</a></h3>
+            <div class="post-meta">
+              <span class="author">By {{author}}</span>
+              <span class="date">{{date}}</span>
+              <span class="category">{{category}}</span>
+            </div>
+            <div class="post-excerpt">
+              {{excerpt}}
+            </div>
+          </article>
+          {{/each}}
+        </div>
+      </section>
+      
+      <div class="blog-categories">
+        <h2>{{categoriesTitle}}</h2>
+        <div class="categories-content">
+          {{categoriesContent}}
+        </div>
+      </div>
+    </div>
+  </main>
+  
+  {{> components/footer.hbs}}
+</body>
+</html>

@@ -1,0 +1,30 @@
+@startuml Cloudflare_Static_Website_with_CMS_Context
+!include <C4/C4_Context>
+title Cloudflare Static Website with Hosted CMS: System Context
+
+LAYOUT_LEFT_RIGHT()
+
+Person_Ext(user, "Visitor", "Anonymous user browsing the website")
+Person(admin, "Content Editor", "Internal user managing website content")
+Person(dev,"Template Developer","Developer working on site templates")
+
+System_Boundary(stp_boundary, "website system") {
+  System(cms, "Headless CMS", "pagescms.org")
+  System(publishing_service, "Publishing Service", "Cloudflare Worker + Gilbert")
+  System(serving_service, "Serving Service", "Cloudflare Worker + R2")
+}
+
+System_Ext(github, "GitHub", "Source Repository")
+
+Rel(user, serving_service, "Browses site", "HTTPS")
+
+Rel(admin, cms, "Creates, edits and publishes content", "HTTPS")
+
+Rel(cms, github, "Updates content (JSON)", "Git merge")
+Rel(dev, github, "Manages templates (HBS)", "Git merge via PR")
+Rel(cms, publishing_service, "Publish webhook (no content)", "HTTPS / Webhook trigger only")
+
+Rel(github, publishing_service, "Fetch content & templates", "GitHub API (branch-specific)")
+Rel(publishing_service, serving_service, "Build and stream to R2", "Internal deployment/coordination")
+
+@enduml

@@ -1,0 +1,45 @@
+{
+  "name": "Big Test Site",
+  "version": "1.0.0",
+  "source": "./src",
+  "destination": "./dist",
+  "data": "./data.json",
+  "templates": {
+    "engine": "handlebars",
+    "source": "./src/templates",
+    "partials": "./src/templates/components"
+  },
+  "scripts": {
+    "source": "./src/scripts",
+    "destination": "./dist"
+  },
+  "stylesheets": {
+    "source": "./src/stylesheets",
+    "destination": "./dist"
+  },
+  "pages": [
+    {
+      "template": "home",
+      "data": "pages.home",
+      "destination": "/index.html"
+    },
+    {
+      "template": "about",
+      "data": "pages.about",
+      "destination": "/about/index.html"
+    },
+    {
+      "template": "blog-landing",
+      "data": "pages.blog-landing",
+      "destination": "/blog/index.html"
+    }
+  ],
+  "collections": [
+    {
+      "name": "blogPosts",
+      "template": "blog-post",
+      "data": "blogPosts",
+      "destination": "/blog/{{slug}}/index.html"
+    }
+  ]
+}

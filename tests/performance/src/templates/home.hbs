@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+{{> components/head.hbs}}
+<body class="home-page">
+  {{> components/header.hbs}}
+  
+  <main class="main-content">
+    <section class="hero-section">
+      <div class="container">
+        <h1>{{heroTitle}}</h1>
+        <p class="hero-subtitle">{{heroSubtitle}}</p>
+        <div class="hero-content">
+          {{heroContent}}
+        </div>
+        <div class="hero-actions">
+          <a href="{{primaryActionUrl}}" class="btn btn-primary">{{primaryActionLabel}}</a>
+          <a href="{{secondaryActionUrl}}" class="btn btn-secondary">{{secondaryActionLabel}}</a>
+        </div>
+      </div>
+    </section>
+    
+    <section class="features-section">
+      <div class="container">
+        <h2>{{featuresTitle}}</h2>
+        <div class="features-grid">
+          <div class="feature-card">
+            <h3>{{feature1Title}}</h3>
+            <p>{{feature1Description}}</p>
+          </div>
+          <div class="feature-card">
+            <h3>{{feature2Title}}</h3>
+            <p>{{feature2Description}}</p>
+          </div>
+          <div class="feature-card">
+            <h3>{{feature3Title}}</h3>
+            <p>{{feature3Description}}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  
+  {{> components/footer.hbs}}
+</body>
+</html>

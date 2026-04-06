@@ -1,0 +1,6 @@
+{
+  "extends": "../../jsconfig.json",
+  "compilerOptions": {},
+  "include": ["lib/**/*.js"],
+  "exclude": ["tests", "tests/**", "**/*.test.js", "node_modules"]
+}

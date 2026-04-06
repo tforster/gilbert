@@ -1,195 +1,153 @@
-// System dependencies
-import { Writable } from "stream";
-import { Readable } from "stream";
-
 // Third party dependencies
 import handlebars from "handlebars";
-import { minify as htmlMinify } from "html-minifier";
-import { log, streamsFinish, vinyl } from "./Utils.js";
-import mime from "mime";
+// import mime from "mime";
+import GilbertFile from "@tforster/gilbert-file";
 
-// TODO: 1. Expect dataStream to be type object of individual URI objects;
-// TODO: 2. Wait for themeStream to complete loading to memory and THEN pipe dataStream to themeStream
+// Gilbert HTML minifier
+import SimpleHtmlMinifier from "./SimpleHtmlMinifier.js";
+
+// Gilbert logger for async performance
+import { createLogger } from "@tforster/gilbert-logger";
+
+// Web API Streams utilities
+import WebStreamUtils from "./WebStreamUtils.js";
 
 class TemplatePipeline {
   // Private properties
-  #dataStreamR;
-  #themeStreamR;
+  /** @type {ReadableStream} */
+  #readableDataStream;
+  /** @type {ReadableStream} */
+  #readableTemplatesStream;
+  #templates = {};
+  #logger;
 
   /**
    * Creates an instance of TemplatePipeline.
-   * @param {object} options: Hash of runtime options
+   * @param {*} options
+   * @param {*} readableDataStream
+   * @param {*} readableTemplatesStream
    * @memberof TemplatePipeline
    */
-  constructor(options, dataStreamR, themeStreamR) {
-    this.#dataStreamR = dataStreamR;
-    this.#themeStreamR = themeStreamR;
+  constructor(options, readableDataStream, readableTemplatesStream) {
+    this.#readableDataStream = readableDataStream;
+    this.#readableTemplatesStream = readableTemplatesStream;
+    // Enable debug logging when the GILBERT_DEBUG global is set (WinterCG-compatible)
+    this.#logger = createLogger(globalThis.GILBERT_DEBUG === "true");
+  }
 
-    // Create a new Readable stream as pipable output
-    this.stream = new Readable({
-      objectMode: true,
-      read: function (f) {
-        this.push(null);
+  /**
+   * @description: -
+   *   - Data is a stream of one or more JSON files where each file implements a URI object with at least uri and webProducerKey
+   * properties.
+   *  - Templates is an array of one or more Handlebars (.hbs) files where each file name matches a webProducerKey value in the
+   * data.
+   * - Each URI object is processed in turn, applying the matching Handlebars template to generate a final HTML file.
+   * - Critical: All templates must be loaded into memory before processing any data URIs.
+   * @return {Promise<void>}:
+   * @memberof TemplatePipeline
+   */
+  async build() {
+    await this.#loadTemplates();
+
+    const templates = this.#templates;
+    const logger = this.#logger;
+
+    const transformStream = new TransformStream({
+      async transform(file, controller) {
+        if (!file.contents) {
+          return;
+        }
+        const uriContent = await file.toString();
+        logger.debug(`Processing URI file: ${file.path}`);
+        logger.debug(`URI content: ${uriContent}`);
+        const uri = JSON.parse(uriContent);
+        logger.debug(`Parsed URI:`, uri);
+        const path = uri.uri;
+
+        // Initialise an empty GilbertFile
+        let gilbertFile = new GilbertFile({});
+
+        if (uri.webProducerKey && uri.webProducerKey !== "redirect") {
+          const templateKey = uri.webProducerKey + ".hbs";
+          logger.debug(`Looking for template: ${templateKey}`);
+          logger.debug(`Available templates:`, Object.keys(templates));
+          const template = templates[templateKey];
+          if (!template) {
+            logger.debug(`Template not found for webProducerKey: ${uri.webProducerKey}`);
+            return;
+          }
+          const generatedContents = template({ ...uri });
+          logger.debug(`Generated content preview:`, generatedContents.substring(0, 100));
+          gilbertFile = new GilbertFile({
+            path,
+            contents: new TextEncoder().encode(generatedContents),
+            // contentType: mime.getType(path),
+            cwd: "/", // Virtual root - matches Utils.vinyl() behaviour
+          });
+          if (gilbertFile.extname === "" || gilbertFile.extname === ".html") {
+            // Use generatedContents directly — avoids decoding what we just encoded
+            const minifiedHtml = SimpleHtmlMinifier.minify(generatedContents, {
+              keep_closing_tags: false,
+              keep_html_and_head_opening_tags: false,
+              allow_removing_spaces_between_attributes: true,
+              keep_comments: false,
+              minify_css: true,
+              minify_js: true,
+            });
+
+            gilbertFile.contents = new TextEncoder().encode(minifiedHtml);
+            gilbertFile.contentType = "text/html";
+          }
+        } else if (uri.webProducerKey === "redirect") {
+          gilbertFile = new GilbertFile({
+            path,
+            contents: new TextEncoder().encode(uri.targetAddress),
+            redirect: 301,
+            contentType: "text/html",
+            cwd: "/", // Virtual root - matches Utils.vinyl() behaviour
+          });
+        } else {
+          logger.debug(`Unexpected condition: page and webProducerKey not found. ${path}, ${uri}`);
+          return;
+        }
+        controller.enqueue(gilbertFile);
       },
     });
+
+    // Assign the readable side of the transform stream as the output
+    this.stream = this.#readableDataStream.pipeThrough(transformStream);
   }
 
   /**
    * @description
-   * @return {stream}:  A steam of Vinyl files
+   * @date 2025-09-06
+   * @typedef {File} file
    * @memberof TemplatePipeline
    */
-  async prep() {
-    const { data, templates } = await this.parseFiles();
-    this.data = data;
-    this.templates = templates;
-  }
+  async #loadTemplates() {
+    // Create a collector function for processing Web API streams
+    const collector = WebStreamUtils.createFileCollector(async (file) => {
+      // Use file.relative directly as the template key since GilbertFS base path handling
+      // ensures the relative path is already correctly calculated from the base
+      if (!file.isDirectory()) {
+        const templateKey = file.relative;
 
-  /**
-   * @description: Builds files by combining templates and data
-   * @return {void}:
-   * @memberof TemplatePipeline
-   */
-  build() {
-    const data = this.data;
-    const templates = this.templates;
+        // Get the content of the template
+        const content = await file.toString();
 
-    // Check for data and exit if non present
-    if (!data.uris) {
-      const msg = "TemplatePipeline: Empty or missing data.uris.";
-      console.warn(msg);
-      throw msg;
-    }
+        // Compile as a template (Gilbert's approach for 10 years)
+        this.#templates[templateKey] = handlebars.compile(content);
 
-    handlebars.partials = templates;
-    // Iterate the uris sub object of data
-    for (const [key, uri] of Object.entries(data.uris)) {
-      // Check that we have a page and webProducerKey otherwise gracefully exit this specific iteration
-      if (!uri?.webProducerKey) {
-        console.warn(`Unexpected condition: webProducerKey not found processing [${key}, ${uri}]`);
-        continue;
+        // Also register as partial with raw content (needed for newer Handlebars)
       }
-
-      // Cleanup any accidental whitespace
-      const path = key.trim();
-      // Declare a placeholder for the Vinyl file that will be generated
-      let vinylFile;
-
-      // Get the template referenced by the webProducerKey
-      const template = templates[`${uri.webProducerKey}.hbs`];
-
-      if (template) {
-        // Generate content by merging the pageData into the named Handlebars template
-        const generatedContents = template(uri);
-
-        // Create a new Vinyl object from the generated data
-        vinylFile = vinyl({
-          path,
-          contents: Buffer.from(generatedContents),
-          // TODO: Refactor so this is entirely handled in gilbert-file
-
-          contentType: mime.getType(path),
-        });
-
-        if (vinylFile.extname === "" || vinylFile.extname === ".html") {
-          // This generated file in HTML and the contents should be minified
-          vinylFile.contents = Buffer.from(
-            htmlMinify(vinylFile.contents.toString(), {
-              collapseWhitespace: true,
-              removeComments: true,
-              minifyCSS: true,
-              minifyJS: true,
-            })
-          );
-          // Force extensionless to HTML mime type
-          vinylFile.contentType = "text/html";
-        }
-      } else if (uri.webProducerKey === "redirect") {
-        // Redirects are pseudo-virtual text files that are not created via a handlebars template
-        vinylFile = vinyl({
-          path,
-          contents: Buffer.from(uri.targetAddress),
-          redirect: 301,
-          // Note: AWS S3 will convert this to the specific header x-amz-website-redirect-location
-          // targetAddress: uri.targetAddress,
-          contentType: "text/html",
-        });
-      } else {
-        log(`Unexpected condition: page and webProducerKey not found. ${key}, ${uri}`);
-        continue;
-      }
-
-      // Add the vinyl file to the mergeStream
-      this.stream.push(vinylFile);
-    }
-  }
-
-  /**
-   * @description:  Parses out the data as a file from dataStreamR and, compiles all the handlebars templates found in themeStreamR.
-   * @return {object}:  An object containing a data property and a compiled handlebars templates property
-   * @memberof TemplatePipeline
-   */
-  async parseFiles() {
-    // Cache the streams to make them easier to reference in this method
-    const dataStreamR = this.#dataStreamR;
-    const themeStreamR = this.#themeStreamR;
-
-    // Declare the in-memory objects to be returned
-    const templates = {};
-    let data = {};
-
-    // Add event handlers to the streams. Currently empty but kept for possible future use.
-    dataStreamR.on("end", () => {});
-    themeStreamR.on("end", () => {});
-
-    // Process the theme stream to build an in-memory array of compiled handlebars templates
-    const themeStreamW = new Writable({
-      objectMode: true,
-      write: (file, _, done) => {
-        // Compile the theme file into the handlebars.templates hash
-        templates[file.relative] = handlebars.compile(file.contents.toString());
-        done();
-      },
     });
+    // Pipe the templates stream to the collector to load all templates into memory
+    await this.#readableTemplatesStream.pipeTo(collector.stream);
 
-    // Process the data stream to create an in-memory data object
-    const dataStreamW = new Writable({
-      objectMode: true,
-      write: (file, _, done) => {
-        // TODO: Improve handling in case we get non JSON data for some reason
-        let rawData = "";
-
-        if (file.contents) {
-          // A Vinyl file object will have a .contents property
-          rawData = file.contents.toString();
-        } else {
-          // A non Vinyl file, e.g. result of a fetch() response, should be a vanilla buffer
-          rawData = file.toString();
-        }
-
-        try {
-          data = JSON.parse(rawData);
-        } catch (err) {
-          console.warn("Unexpected condition: Valid JSON not found.\n", rawData);
-          data = {};
-        }
-
-        done();
-      },
-    });
-
-    // Start piping both in parallel
-    dataStreamR.pipe(dataStreamW);
-    themeStreamR.pipe(themeStreamW);
-
-    // Allow all the streams to finish processing before returning
-    await streamsFinish([dataStreamW, themeStreamW]);
-
-    // Cleanup
-    dataStreamR.unpipe(dataStreamW);
-    themeStreamR.unpipe(themeStreamW);
-
-    return { data, templates };
+    // Set partials to templates (Gilbert's 10-year tradition)
+    // This allows templates to reference each other via {{> templateName }}
+    // @ts-ignore
+    handlebars.partials = this.#templates;
   }
 }
 

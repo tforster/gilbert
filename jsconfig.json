@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "strictFunctionTypes": false,
+    "noImplicitReturns": false,
+    "noFallthroughCasesInSwitch": false,
+    "paths": {
+      "@gilbert/*": ["./services/gilbert/lib/*"],
+      "@gilbert-file/*": ["./services/gilbert-file/lib/*"],
+      "@gilbert-github/*": ["./services/gilbert-github/lib/*"],
+      "@gilbert-cli/*": ["./services/gilbert-cli/*"],
+      "@gilbert-fs/*": ["./services/gilbert-fs/*"]
+    }
+  },
+  "include": [
+    "services/*/lib/**/*.js",
+    "services/gilbert-cli/**/*.js",
+    "services/gilbert-fs/**/*.js",
+    "test-harness/**/*.js",
+    "tests/**/*.js",
+    "examples/**/*.js",
+    "*.js",
+    "tests/real-world/real-world.test.js"
+  ],
+  "exclude": ["node_modules", "dist", "coverage", "services/*/tests/**", "services/*/test/**", "**/*.test.js", "**/node_modules/**"]
+}

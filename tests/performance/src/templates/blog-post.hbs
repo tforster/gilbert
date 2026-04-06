@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+{{> components/head.hbs}}
+
+<body class="blog-post-page">
+  {{> components/header.hbs}}
+
+  <main class="main-content">
+    <div class="container">
+      <article class="blog-post">
+        <header class="post-header">
+          <h1>{{title}}</h1>
+          <div class="post-meta">
+            <span class="author">By {{author}}</span>
+            <span class="date">{{date}}</span>
+            <span class="category">Category: {{category}}</span>
+            <span class="reading-time">{{readingTime}} min read</span>
+          </div>
+          <div class="post-excerpt">
+            {{excerpt}}
+          </div>
+        </header>
+
+        <div class="post-content">
+          {{#if content}}
+            <section class="main-content-section">
+              <div class="main-content">
+                {{{content}}}
+              </div>
+            </section>
+          {{/if}}
+
+          <section class="content-section">
+            <h2>{{section1Title}}</h2>
+            <div class="section-content">
+              {{section1Content}}
+            </div>
+          </section>
+
+          <section class="content-section">
+            <h2>{{section2Title}}</h2>
+            <div class="section-content">
+              {{section2Content}}
+            </div>
+          </section>
+
+          <section class="content-section">
+            <h2>{{section3Title}}</h2>
+            <div class="section-content">
+              {{section3Content}}
+            </div>
+          </section>
+
+          <section class="content-section">
+            <h2>{{section4Title}}</h2>
+            <div class="section-content">
+              {{section4Content}}
+            </div>
+          </section>
+
+          <section class="content-section">
+            <h2>{{section5Title}}</h2>
+            <div class="section-content">
+              {{section5Content}}
+            </div>
+          </section>
+        </div>
+
+        <footer class="post-footer">
+          <div class="post-tags">
+            <strong>Tags:</strong> {{tags}}
+          </div>
+          <div class="post-navigation">
+            <a href="{{previousPostUrl}}" class="prev-post">{{previousPostTitle}}</a>
+            <a href="{{nextPostUrl}}" class="next-post">{{nextPostTitle}}</a>
+          </div>
+        </footer>
+      </article>
+    </div>
+  </main>
+
+  {{> components/footer.hbs}}
+</body>
+
+</html>

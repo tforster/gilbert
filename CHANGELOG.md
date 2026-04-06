@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html) and [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-- All releases are available as [GitHub Releases](https://github.com/tforster/webproducer/releases).
+- All releases are available as [GitHub Releases](https://github.com/tforster/gilbert/releases).
 
 This repository uses [workspaces](https://docs.npmjs.com/cli/v7/using-npm/workspaces) for managing multiple packages.  
 Each workspace/package maintains its own `CHANGELOG.md` for package-specific changes.
@@ -13,22 +13,35 @@ Each workspace/package maintains its own `CHANGELOG.md` for package-specific cha
 - [services/gilbert-cli/CHANGELOG.md](./services/gilbert-cli/CHANGELOG.md)
 - [services/gilbert-file/CHANGELOG.md](./services/gilbert-file/CHANGELOG.md)
 
-## [v1.0.0-beta.5](https://github.com/tforster/webproducer/compare/v1.0.0-beta.4...v1.0.0-beta.5) - 2025-06-09
+## [v1.0.0-rc.1](https://github.com/tforster/gilbert/compare/v1.0.0-beta.5...v1.0.0-rc.1) - 2025-06-09
 
 ### Changed
 
-- This release sees the shift in the NPM registry from WebProducer to gilbert.
+- Significant refactoring to move from Node proprietary APIs to WinterCG WebAPI standards, improving runtime compatibility and future-proofing the codebase.
+- Updated all stream handling to use Web API streams (ReadableStream, TransformStream, WritableStream) instead of Node.js streams.
+- Refactored file handling to use in-memory GilbertFile objects instead of relying on filesystem paths, enabling greater flexibility and performance.
+- Updated documentation to reflect architectural changes and new usage patterns.
+- Removed the Gilbert CLI for now, with plans to reintroduce it in a future release with a more robust architecture and easier interface.
+- Bumped all dependencies to their latest versions, ensuring compatibility with the new architecture and improving security and performance.
+- Removed all console.log() statements from the codebase to clean up output and improve performance.
+- Added comprehensive test coverage for the new architecture, including unit tests for core functionality and integration tests for end-to-end workflows.
+
+## [v1.0.0-beta.5](https://github.com/tforster/gilbert/compare/v1.0.0-beta.4...v1.0.0-beta.5) - 2025-06-09
+
+### Changed
+
+- This release sees the official rename of WebProducer to Gilbert including in the NPM registry from WebProducer to Gilbert.
 - NPM workspaces are now being used to manage the gilbert CLI and gilbert file packages.
 
 ### Removed
 
 - The Gilbert CLI has been removed for now. It will be reintroduced in a future release with a more robust architecture and an easier to use interface.
 
-## [v1.0.0-beta.4](https://github.com/tforster/webproducer/compare/v1.0.0-beta.3...v1.0.0-beta.4) - 2025-01-17
+## [v1.0.0-beta.4](https://github.com/tforster/gilbert/compare/v1.0.0-beta.3...v1.0.0-beta.4) - 2025-01-17
 
-## [v1.0.0-beta.3](https://github.com/tforster/webproducer/compare/v1.0.0-beta.2...v1.0.0-beta.3) - 2024-10-01
+## [v1.0.0-beta.3](https://github.com/tforster/gilbert/compare/v1.0.0-beta.2...v1.0.0-beta.3) - 2024-10-01
 
-## [v1.0.0-beta.2](https://github.com/tforster/webproducer/compare/v1.0.0-beta.1...v1.0.0-beta.2) - 2024-06-01
+## [v1.0.0-beta.2](https://github.com/tforster/gilbert/compare/v1.0.0-beta.1...v1.0.0-beta.2) - 2024-06-01
 
 ### Fixed
 
@@ -36,13 +49,13 @@ Each workspace/package maintains its own `CHANGELOG.md` for package-specific cha
 - Bumped all dependencies and devDependencies to latest, except for vinyl\* that have breaking changes.
 - Removed annoying console.log() lines
 
-## [v1.0.0-beta.1](https://github.com/tforster/webproducer/compare/v1.0.0-beta.0...v1.0.0-beta.1) - 2023
+## [v1.0.0-beta.1](https://github.com/tforster/gilbert/compare/v1.0.0-beta.0...v1.0.0-beta.1) - 2023
 
 ### Fixed
 
 - Minor bugfix to Utils.js to correct an issue where virtual files in the pipeline inherited the path of the parent project as their base. This caused files to be generated into the destination folder with the full path of the project appended.
 
-## [v1.0.0-beta.0](https://github.com/tforster/webproducer/compare/v1.0.0...v1.0.0-beta.0) - 2022-05-18
+## [v1.0.0-beta.0](https://github.com/tforster/gilbert/compare/v1.0.0...v1.0.0-beta.0) - 2022-05-18
 
 ### Added
 
@@ -54,7 +67,7 @@ Each workspace/package maintains its own `CHANGELOG.md` for package-specific cha
 
 - Complete overhaul and ground-up re-architecture of WebProducer with performance and reusability in mind.
 - Core is much leaner (just 6 dependencies), expects (mostly) readable streams for input and provides a single writable stream as output.
-- CLI utility provided: `npx @tforster/webproducer`.
+- CLI utility provided: `npx @tforster/gilbert`.
 - Pipelines can be selectively enabled/disabled for flexible usage.
 
 ---
@@ -159,8 +172,4 @@ Each workspace/package maintains its own `CHANGELOG.md` for package-specific cha
 
 - Git repository created and proof-of-concept code added to /src directory.
 
-[Unreleased]: https://github.com/tforster/webproducer/compare/v1.0.0-beta.2...HEAD
-[v1.0.0-beta.2]: https://github.com/tforster/webproducer/compare/v1.0.0-beta.1...v1.0.0-beta.2
-[v1.0.0-beta.1]: https://github.com/tforster/webproducer/compare/v1.0.0-beta.0...v1.0.0-beta.1
-[v1.0.0-beta.0]: https://github.com/tforster/webproducer/compare/v1.0.0...v1.0.0-beta.0
-[v1.0.0]: https://github.com/tforster/webproducer/releases/tag/v1.0.0
+[v1.0.0]: https://github.com/tforster/gilbert/releases/tag/v1.0.0

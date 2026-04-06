@@ -1,0 +1,44 @@
+@startuml Cloudflare_Serving_Service_Containers
+!include <C4/C4_Container>
+
+' Cloudflare Serving Service - C4 Container Diagram
+
+Person(visitor, "Visitor", "Browsing www.stoptheparty.ca")
+
+System_Ext(r2_bucket, "R2 Bucket", "Cloudflare R2")
+System(publishing_service, "Publishing Service", "Cloudflare Worker")
+
+System_Boundary(serving_service, "Serving Service") {
+  Container(request_handler, "Request Handler", "Cloudflare Worker Route", "Receives HTTP requests, orchestrates cache-first serving strategy")
+  
+  Container(cache_manager, "Cache Manager", "Cloudflare Cache API", "Manages edge cache with TTL and cache invalidation logic")
+  
+  Container(r2_fetcher, "R2 Fetcher", "JavaScript Module", "Fetches assets from R2 when cache miss or stale")
+  
+  Container(cache_invalidator, "Cache Invalidator", "JavaScript Module", "Invalidates cache entries for recently published content")
+  
+  Container(response_builder, "Response Builder", "JavaScript Module", "Constructs HTTP responses with appropriate headers (content-type, cache-control, etag)")
+  
+  Container(toml, "wrangler.toml", "Worker configuration and bindings for R2 and Cache API")
+}
+
+Rel(visitor, request_handler, "GET /page.html", "HTTPS")
+
+Rel(request_handler, cache_manager, "Check cache", "Cache API lookup")
+Rel(cache_manager, request_handler, "Cache hit", "Returns cached response")
+
+Rel(request_handler, r2_fetcher, "Fetch asset", "On cache miss/stale")
+Rel(r2_fetcher, r2_bucket, "R2.get(key)", "R2 native API (worker binding)")
+
+Rel(r2_fetcher, response_builder, "Asset content", "ReadableStream")
+Rel(response_builder, cache_manager, "Store in cache", "Cache API put")
+Rel(response_builder, request_handler, "HTTP Response", "Response object")
+
+Rel(request_handler, visitor, "200 OK", "HTML/CSS/JS/media")
+
+Rel(r2_bucket, cache_invalidator, "object-create event", "R2 event notification with object key(s)")
+Rel(cache_invalidator, cache_manager, "Purge cache entries", "Cache API delete for changed paths")
+
+SHOW_LEGEND()
+
+@enduml
