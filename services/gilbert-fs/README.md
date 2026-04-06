@@ -166,4 +166,4 @@ MIT License - see LICENSE file for details.
 - [`@tforster/gilbert-file`](../gilbert-file) - Virtual file object system
 - [`@tforster/gilbert-github`](../gilbert-github) - GitHub integration for content
 
-Part of the [Gilbert](https://github.com/tforster/webproducer) ecosystem.
+Part of the [Gilbert](https://github.com/tforster/gilbert) ecosystem.

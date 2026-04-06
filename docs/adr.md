@@ -71,7 +71,7 @@ Gilbert is a static site generator built on Node.js streams for processing conte
 8. **CLI Integration (`services/gilbert-cli/scripts/cli/index.js`)**
    - Uses `vinyl-fs` for file system streams
    - Pipes data through custom transform modules
-   - Final output via `webproducer.mergeStream.pipe(dest)`
+   - Final output via `gilbert.mergeStream.pipe(dest)`
 
 #### Critical Architecture Insight: GilbertFile
 

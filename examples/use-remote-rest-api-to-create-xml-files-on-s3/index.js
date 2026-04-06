@@ -1,3 +1,4 @@
+// TODO: Update this example use the new Gilbert (fka WebProducer) API and refactor for ESM
 "use strict";
 
 // Cache the start time as early as possible for best accuracy in elapsed time reporting.

@@ -42,8 +42,8 @@ Requirements for building, testing, and deploying Gilbert projects. Note the ver
 1. Clone the Gilbert monorepo:
 
    ```bash
-   git clone git@github.com:tforster/webproducer.git
-   cd webproducer
+   git clone git@github.com:tforster/gilbert.git
+   cd gilbert
    ```
 
 2. Install dependencies:
@@ -59,6 +59,7 @@ Requirements for building, testing, and deploying Gilbert projects. Note the ver
    ```
 
 4. Link for local development:
+
    ```bash
    npm link
    ```

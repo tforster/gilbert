@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines agent protocols, behaviours, and context management for the Gilbert (WebProducer) project. This document replaces `.github/copilot-instructions.md` and follows the [agents.md](https://agents.md/) specification for AI agent prompting and documentation.
+Defines agent protocols, behaviours, and context management for the Gilbert project. This document replaces `.github/copilot-instructions.md` and follows the [agents.md](https://agents.md/) specification for AI agent prompting and documentation.
 
 ---
 

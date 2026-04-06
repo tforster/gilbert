@@ -1,7 +1,7 @@
 {
   "author": "Troy Forster <troy@tforster.com>",
   "bugs": {
-    "url": "https://github.com/tforster/webproducer/issues"
+    "url": "https://github.com/tforster/gilbert/issues"
   },
   "dependencies": {},
   "description": "Shared glob pattern matching utilities for Gilbert services",
@@ -15,7 +15,7 @@
     "lib/",
     "README.md"
   ],
-  "homepage": "https://github.com/tforster/webproducer#readme",
+  "homepage": "https://github.com/tforster/gilbert#readme",
   "keywords": [
     "gilbert",
     "static-site-generator",
@@ -31,7 +31,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/tforster/webproducer.git",
+    "url": "git+ssh://git@github.com/tforster/gilbert.git",
     "directory": "services/gilbert-glob"
   },
   "scripts": {

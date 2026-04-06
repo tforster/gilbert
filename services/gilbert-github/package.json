@@ -1,7 +1,7 @@
 {
   "author": "Troy Forster <troy@tforster.com>",
   "bugs": {
-    "url": "https://github.com/tforster/webproducer/issues"
+    "url": "https://github.com/tforster/gilbert/issues"
   },
   "dependencies": {
     "@tforster/gilbert-file": "^1.0.0-rc.1",
@@ -20,7 +20,7 @@
     "README.md",
     "CHANGELOG.md"
   ],
-  "homepage": "https://github.com/tforster/webproducer#readme",
+  "homepage": "https://github.com/tforster/gilbert#readme",
   "keywords": [
     "gilbert",
     "static-site-generator",
@@ -37,7 +37,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/tforster/webproducer.git",
+    "url": "git+ssh://git@github.com/tforster/gilbert.git",
     "directory": "services/gilbert-github"
   },
   "scripts": {

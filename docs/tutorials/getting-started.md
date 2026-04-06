@@ -27,8 +27,8 @@ The fastest way to see Gilbert in action is through the example project in the r
 
 ```bash
 # Clone the repository
-git clone git@github.com:tforster/webproducer.git
-cd webproducer
+git clone git@github.com:tforster/gilbert.git
+cd gilbert
 
 # Install dependencies
 npm install
