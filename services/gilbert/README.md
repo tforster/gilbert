@@ -33,7 +33,7 @@ Gilbert's core engine transforms data streams through specialized pipelines, tar
 
 Requirements for building, testing, and deploying Gilbert projects. Note the versions were current at the time of writing. Later versions should work but YMMV.
 
-- **[Node.js 18.0+](https://nodejs.org/)**: JavaScript runtime environment. Gilbert uses Web API streams available in Node.js 18+.
+- **[Node.js 20.0+](https://nodejs.org/)**: JavaScript runtime environment. Gilbert requires Node.js 20+ to match the package engine constraint.
 - **[npm 9.0+](https://www.npmjs.com/)**: Package manager for dependency installation and script execution.
 - **[Git 2.34+](https://git-scm.com/)**: Version control system for source code management.
 
