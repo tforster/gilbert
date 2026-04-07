@@ -37,7 +37,7 @@
     "lint:fix": "oxlint --fix",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
-    "test": "npm run test --workspaces --if-present --workspace-concurrency=1",
+    "test": "node devops/test.js",
     "test:all": "npm run test && npm run test:performance",
     "test:performance": "node --test tests/performance/performance.test.js"
   },
