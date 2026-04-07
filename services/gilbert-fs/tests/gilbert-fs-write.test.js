@@ -1,40 +1,33 @@
 // Gilbert-FS Write Functionality Tests
 import { test, describe } from "node:test";
 import assert from "node:assert";
-import { readFile, rm, stat, readdir } from "node:fs/promises";
+import { readFile, mkdir, stat, readdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 
 // Project dependencies
 import GilbertFS from "../lib/index.js";
 import GilbertFile from "@tforster/gilbert-file";
 
-// Test paths
-const TEST_SRC_DIR = "../../tests/src/files";
-const TEST_DIST_DIR = "./tests/dist";
+// Each test gets its own isolated tmp subdirectory — no shared state between tests
+let testIndex = 0;
+const makeDistDir = async () => {
+  const dir = path.join(tmpdir(), `gilbert-fs-write-${++testIndex}`);
+  await mkdir(dir, { recursive: true });
+  return dir;
+};
 
 describe("GilbertFS Write Operations", { concurrency: 1 }, async () => {
   // Helper function to create test GilbertFile objects
   function createTestFile(relativePath, content, options = {}) {
-    const fullPath = path.resolve(TEST_SRC_DIR, relativePath);
+    const srcBase = path.resolve(path.dirname(new URL(import.meta.url).pathname), "../../tests/src/files");
+    const fullPath = path.resolve(srcBase, relativePath);
     return new GilbertFile({
       path: fullPath,
-      base: path.resolve(TEST_SRC_DIR),
+      base: srcBase,
       contents: typeof content === "string" ? new TextEncoder().encode(content) : content,
       ...options,
     });
-  }
-
-  // Helper function to clean dist directory
-  async function cleanDist() {
-    try {
-      await rm(TEST_DIST_DIR, { recursive: true, force: true });
-    } catch (error) {
-      // Ignore ENOENT errors (directory doesn't exist)
-      if (error.code !== "ENOENT") {
-        throw error;
-      }
-    }
-    return TEST_DIST_DIR;
   }
 
   // Helper function to write files to stream
@@ -51,7 +44,7 @@ describe("GilbertFS Write Operations", { concurrency: 1 }, async () => {
 
   test("should create WritableStream with write method", async () => {
     const fs = new GilbertFS();
-    const distDir = await cleanDist();
+    const distDir = await makeDistDir();
     const stream = fs.write(distDir);
 
     assert.ok(stream instanceof WritableStream, "Should return WritableStream");
@@ -59,7 +52,7 @@ describe("GilbertFS Write Operations", { concurrency: 1 }, async () => {
 
   test("should write single file to filesystem", async () => {
     const fs = new GilbertFS();
-    const distDir = await cleanDist();
+    const distDir = await makeDistDir();
 
     const testFile = createTestFile("test.txt", "Hello, World!");
     const stream = fs.write(distDir);
@@ -73,7 +66,7 @@ describe("GilbertFS Write Operations", { concurrency: 1 }, async () => {
 
   test("should write multiple files to filesystem", async () => {
     const fs = new GilbertFS();
-    const distDir = await cleanDist();
+    const distDir = await makeDistDir();
 
     const files = [
       createTestFile("file1.txt", "Content 1"),
@@ -95,7 +88,7 @@ describe("GilbertFS Write Operations", { concurrency: 1 }, async () => {
 
   test("should create nested directories as needed", async () => {
     const fs = new GilbertFS();
-    const distDir = await cleanDist();
+    const distDir = await makeDistDir();
 
     const nestedFile = createTestFile("deeply/nested/directory/file.txt", "Nested content");
     const stream = fs.write(distDir);
@@ -110,7 +103,7 @@ describe("GilbertFS Write Operations", { concurrency: 1 }, async () => {
 
   test("should handle files with null contents (empty files)", async () => {
     const fs = new GilbertFS();
-    const distDir = await cleanDist();
+    const distDir = await makeDistDir();
 
     // Create empty file with explicit stat info to indicate it's a file, not a directory
     const emptyFile = createTestFile("empty.txt", null, {
@@ -133,7 +126,7 @@ describe("GilbertFS Write Operations", { concurrency: 1 }, async () => {
 
   test("should handle files with ReadableStream contents", async () => {
     const fs = new GilbertFS();
-    const distDir = await cleanDist();
+    const distDir = await makeDistDir();
 
     // Create a ReadableStream with test content
     const chunks = ["Hello, ", "streaming ", "world!"];
@@ -161,7 +154,7 @@ describe("GilbertFS Write Operations", { concurrency: 1 }, async () => {
 
   test("should preserve file structure from relative paths", async () => {
     const fs = new GilbertFS();
-    const distDir = await cleanDist();
+    const distDir = await makeDistDir();
 
     const files = [
       createTestFile("root.txt", "root content"),
@@ -184,7 +177,7 @@ describe("GilbertFS Write Operations", { concurrency: 1 }, async () => {
 
   test("should handle concurrent write operations", async () => {
     const fs = new GilbertFS();
-    const distDir = await cleanDist();
+    const distDir = await makeDistDir();
 
     // Create multiple write operations concurrently
     const operations = [];
@@ -206,7 +199,7 @@ describe("GilbertFS Write Operations", { concurrency: 1 }, async () => {
 
   test("should handle different file types correctly", async () => {
     const fs = new GilbertFS();
-    const distDir = await cleanDist();
+    const distDir = await makeDistDir();
 
     const files = [
       createTestFile("text.txt", "Plain text content"),
@@ -237,7 +230,7 @@ describe("GilbertFS Write Operations", { concurrency: 1 }, async () => {
 
   test("should handle large files efficiently", async () => {
     const fs = new GilbertFS();
-    const distDir = await cleanDist();
+    const distDir = await makeDistDir();
 
     // Create a large file (1MB of content)
     const largeContent = "A".repeat(1024 * 1024);
@@ -260,7 +253,7 @@ describe("GilbertFS Write Operations", { concurrency: 1 }, async () => {
 
   test("should handle binary file contents", async () => {
     const fs = new GilbertFS();
-    const distDir = await cleanDist();
+    const distDir = await makeDistDir();
 
     // Create binary content
     const binaryData = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]); // PNG header
@@ -281,7 +274,7 @@ describe("GilbertFS Write Operations", { concurrency: 1 }, async () => {
 
   test("should handle backpressure correctly", async () => {
     const fs = new GilbertFS();
-    const distDir = await cleanDist();
+    const distDir = await makeDistDir();
 
     // Create many files to test backpressure
     const files = [];
@@ -323,7 +316,7 @@ describe("GilbertFS Write Operations", { concurrency: 1 }, async () => {
 
   test("should preserve file timestamps when possible", async () => {
     const fs = new GilbertFS();
-    const distDir = await cleanDist();
+    const distDir = await makeDistDir();
 
     // Create file with custom stat information
     const customStat = {
@@ -348,7 +341,7 @@ describe("GilbertFS Write Operations", { concurrency: 1 }, async () => {
 
   test("should handle files with complex relative paths", async () => {
     const fs = new GilbertFS();
-    const distDir = await cleanDist();
+    const distDir = await makeDistDir();
 
     const files = [
       createTestFile("../outside.txt", "outside content"),

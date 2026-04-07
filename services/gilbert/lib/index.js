@@ -253,17 +253,19 @@ class Gilbert {
       }
     }
 
-    // Static files processing
-    if (this.#streams.static || this.#streams.staticFiles) {
-      const staticFilesPipeline = new StaticFilesPipeline();
+    // Static files processing — accepts a single ReadableStream or an array of ReadableStreams
+    const staticInput = this.#streams.static || this.#streams.staticFiles;
+    if (staticInput) {
+      const staticStreams = Array.isArray(staticInput) ? staticInput : [staticInput];
 
-      // Handle both new 'static' and legacy 'staticFiles' names
-      const staticStream = this.#streams.static || this.#streams.staticFiles;
-      const staticReader = staticStream.pipeThrough(staticFilesPipeline.transformStream);
-      pipelinePromises.push(this.#processPipeline(staticReader, "StaticFiles"));
+      for (const staticStream of staticStreams) {
+        const staticFilesPipeline = new StaticFilesPipeline();
+        const staticReader = staticStream.pipeThrough(staticFilesPipeline.transformStream);
+        pipelinePromises.push(this.#processPipeline(staticReader, "StaticFiles"));
+      }
 
       if (this.#options.debug) {
-        logger.debug("Static files pipeline started");
+        logger.debug(`Static files pipeline started (${staticStreams.length} stream(s))`);
       }
     }
 

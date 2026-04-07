@@ -5,7 +5,8 @@
 
 import { test, before } from "node:test";
 import assert from "node:assert";
-import { rm } from "node:fs/promises";
+import { rm, mkdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { existsSync } from "node:fs";
 
@@ -14,7 +15,7 @@ import GilbertFS from "@tforster/gilbert-fs";
 
 const testDir = new URL(".", import.meta.url).pathname;
 const srcDir = resolve(testDir, "../../../tests/src");
-const distDir = join(testDir, "dist");
+const distDir = join(tmpdir(), "gilbert-full");
 
 // Create GilbertFS adapter instances
 const dataAdapter = new GilbertFS({ base: resolve(srcDir, "data") });
@@ -23,9 +24,8 @@ const staticAdapter = new GilbertFS({ base: srcDir });
 const outputAdapter = new GilbertFS();
 
 before(async () => {
-  if (existsSync(distDir)) {
-    await rm(distDir, { recursive: true, force: true });
-  }
+  await rm(distDir, { recursive: true, force: true });
+  await mkdir(distDir, { recursive: true });
 });
 
 test("Gilbert full website build", async () => {

@@ -1,14 +1,20 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
-import { readdir, stat, readFile, mkdir, rm } from "node:fs/promises";
+import { readdir, stat, readFile, mkdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
 
 // Gilbert and dependencies
 import Gilbert from "@tforster/gilbert";
 import GilbertGitHub from "../lib/index.js";
 
-// Test paths for output
-const distDir = resolve("./tests/dist");
+// Each test gets its own isolated tmp subdirectory — no shared state between tests
+let testIndex = 0;
+const makeDistDir = async () => {
+  const dir = resolve(tmpdir(), `gilbert-github-${++testIndex}`);
+  await mkdir(dir, { recursive: true });
+  return dir;
+};
 
 // Test configuration - using the real StopTheParty repository
 const testRepo = "Stop-The-Party/www.stoptheparty.ca"; // Real repo with .hbs files
@@ -68,10 +74,7 @@ describe("Gilbert GitHub Files Pipeline", { concurrency: 1 }, () => {
       return;
     }
 
-    // Clean output directory
-    await rm(distDir, { recursive: true, force: true });
-
-    // Create adapter instance for specific repo and branch
+    const distDir = await makeDistDir();
     const githubAdapter = createTestAdapter();
 
     // Create Gilbert instance
@@ -87,8 +90,7 @@ describe("Gilbert GitHub Files Pipeline", { concurrency: 1 }, () => {
     // Compile through Gilbert
     await gilbert.compile(params);
 
-    // Create output directory and stream to destination
-    await mkdir(distDir, { recursive: true });
+    // Stream to destination
     await gilbert.stream.pipeTo(githubAdapter.write(distDir));
 
     // Verify output files exist
@@ -112,9 +114,7 @@ describe("Gilbert GitHub Files Pipeline", { concurrency: 1 }, () => {
       return;
     }
 
-    // Clean output directory
-    await rm(distDir, { recursive: true, force: true });
-
+    const distDir = await makeDistDir();
     const githubAdapter = createTestAdapter();
 
     // Create Gilbert instance for array pattern test
@@ -158,37 +158,33 @@ describe("Gilbert GitHub Files Pipeline", { concurrency: 1 }, () => {
       return;
     }
 
-    // Clean output directory
-    await rm(distDir, { recursive: true, force: true });
-
     // Create two adapters for different branches (like in real usage)
     const templatesAdapter = createTestAdapter({ branch: "main" });
     const contentAdapter = createTestAdapter({ branch: "content" });
 
     // Test templates from main branch
+    const dist1 = await makeDistDir();
     const gilbert1 = new Gilbert({ debug: true });
     const templateParams = {
       staticFiles: templatesAdapter.read(["/**/*.hbs"]),
     };
 
     await gilbert1.compile(templateParams);
-    await gilbert1.stream.pipeTo(templatesAdapter.write(distDir));
+    await gilbert1.stream.pipeTo(templatesAdapter.write(dist1));
 
-    const templateFiles = await getAllFiles(distDir);
-
-    // Clean for content test
-    await rm(distDir, { recursive: true, force: true });
+    const templateFiles = await getAllFiles(dist1);
 
     // Test content from content branch
+    const dist2 = await makeDistDir();
     const gilbert2 = new Gilbert({ debug: true });
     const contentParams = {
       staticFiles: contentAdapter.read(["/**/*.json"]),
     };
 
     await gilbert2.compile(contentParams);
-    await gilbert2.stream.pipeTo(contentAdapter.write(distDir));
+    await gilbert2.stream.pipeTo(contentAdapter.write(dist2));
 
-    const contentFiles = await getAllFiles(distDir);
+    const contentFiles = await getAllFiles(dist2);
 
     // Both should work independently
     assert.ok(templateFiles.length >= 0, "Should handle templates branch");
@@ -203,9 +199,7 @@ describe("Gilbert GitHub Files Pipeline", { concurrency: 1 }, () => {
       return;
     }
 
-    // Clean output directory
-    await rm(distDir, { recursive: true, force: true });
-
+    const distDir = await makeDistDir();
     // Test with a different branch (if available)
     const mainAdapter = createTestAdapter({ branch: "main" });
 
@@ -235,28 +229,26 @@ describe("Gilbert GitHub Files Pipeline", { concurrency: 1 }, () => {
     const githubAdapter = createTestAdapter();
 
     // Test single pattern
-    await rm(distDir, { recursive: true, force: true });
-
+    const dist2 = await makeDistDir();
     const gilbert2 = new Gilbert({ debug: true });
     const singlePatternParams = {
       staticFiles: githubAdapter.read("**/*.json"),
     };
 
     await gilbert2.compile(singlePatternParams);
-    await gilbert2.stream.pipeTo(githubAdapter.write(distDir));
-    const singlePatternFiles = await getAllFiles(distDir);
+    await gilbert2.stream.pipeTo(githubAdapter.write(dist2));
+    const singlePatternFiles = await getAllFiles(dist2);
 
     // Test array with single pattern
-    await rm(distDir, { recursive: true, force: true });
-
+    const dist3 = await makeDistDir();
     const gilbert3 = new Gilbert({ debug: true });
     const arrayPatternParams = {
       staticFiles: githubAdapter.read(["**/*.json"]),
     };
 
     await gilbert3.compile(arrayPatternParams);
-    await gilbert3.stream.pipeTo(githubAdapter.write(distDir));
-    const arrayPatternFiles = await getAllFiles(distDir);
+    await gilbert3.stream.pipeTo(githubAdapter.write(dist3));
+    const arrayPatternFiles = await getAllFiles(dist3);
 
     // Should produce same results
     assert.equal(
@@ -274,9 +266,7 @@ describe("Gilbert GitHub Files Pipeline", { concurrency: 1 }, () => {
       return;
     }
 
-    // Clean output directory
-    await rm(distDir, { recursive: true, force: true });
-
+    const distDir = await makeDistDir();
     const githubAdapter = createTestAdapter();
 
     const gilbert = new Gilbert({
@@ -303,9 +293,7 @@ describe("Gilbert GitHub Files Pipeline", { concurrency: 1 }, () => {
       return;
     }
 
-    // Clean output directory
-    await rm(distDir, { recursive: true, force: true });
-
+    const distDir = await makeDistDir();
     const githubAdapter = createTestAdapter();
 
     const gilbert = new Gilbert({

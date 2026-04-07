@@ -2,6 +2,7 @@ import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
 import { readdir, readFile, rm, mkdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { marked } from "marked";
 
@@ -22,15 +23,11 @@ const templatesAdapter = new GilbertFS({ base: templatesDir });
 const outputAdapter = new GilbertFS();
 
 await describe("Gilbert Data Middleware", { concurrency: 1 }, () => {
+  const distDir = path.join(tmpdir(), "gilbert-middleware");
   const cleanDist = async () => {
-    const distPath = path.join(__dirname, "dist");
-    try {
-      await rm(distPath, { recursive: true, force: true });
-      await mkdir(distPath, { recursive: true });
-    } catch {
-      await mkdir(distPath, { recursive: true });
-    }
-    return distPath;
+    await rm(distDir, { recursive: true, force: true });
+    await mkdir(distDir, { recursive: true });
+    return distDir;
   };
   test("should process data through middleware before templates", async () => {
     const testDistDir = await cleanDist();
