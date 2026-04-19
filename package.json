@@ -58,7 +58,7 @@
     "eslint-plugin-prettier": "^5.5.5",
     "eslint-plugin-yml": "^3.3.1",
     "globals": "^17.5.0",
-    "jsdoc": "^0.0.0",
+    "jsdoc": "^4.0.0",
     "oxfmt": "^0.45.0",
     "oxlint": "^1.60.0",
     "prettier": "^3.8.3",
