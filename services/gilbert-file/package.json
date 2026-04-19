@@ -38,9 +38,6 @@
   },
   "scripts": {
     "build": "node scripts/build.js",
-    "docs": "jsdoc2md lib/**/*.js > API.md",
-    "docs:advanced": "node scripts/generate-docs.js",
-    "docs:watch": "nodemon --watch lib --ext js --exec \"npm run docs\"",
     "test": "node --test tests/**/*.test.js",
     "test:watch": "node --test --watch tests/**/*.test.js"
   },
