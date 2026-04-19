@@ -25,9 +25,9 @@ function processLine(line) {
 
 // --workspaces runs the test script in each workspace package only, not in the root.
 // --workspace-concurrency=1 keeps output readable and prevents dist directory collisions.
-const child = spawn("npm", ["run", "test", "--workspaces", "--if-present", "--workspace-concurrency=1"], {
+const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
+const child = spawn(npmCmd, ["run", "test", "--workspaces", "--if-present", "--workspace-concurrency=1"], {
   stdio: ["inherit", "pipe", "pipe"],
-  shell: false,
   env: { ...process.env, FORCE_COLOR: "1" },
 });
 
