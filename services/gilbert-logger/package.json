@@ -32,13 +32,13 @@
     "access": "public"
   },
   "repository": {
+    "directory": "services/gilbert-logger",
     "type": "git",
-    "url": "git+ssh://git@github.com/tforster/gilbert.git",
-    "directory": "services/gilbert-logger"
+    "url": "git+ssh://git@github.com/tforster/gilbert.git"
   },
   "scripts": {
     "test": "node --test tests/*.test.js"
   },
   "type": "module",
-  "version": "1.0.0-rc.1"
+  "version": "1.0.0-rc.4"
 }
