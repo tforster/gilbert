@@ -2,7 +2,7 @@ import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readdir, readFile, mkdir } from "node:fs/promises";
+import { readdir, readFile, mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 
 // Gilbert and dependencies
@@ -16,9 +16,10 @@ const srcDir = resolve(__dirname, "../../../tests/src");
 const templatesDir = resolve(srcDir, "templates");
 const dataDir = resolve(srcDir, "data");
 
-// Each test gets its own isolated tmp subdirectory — no shared state between tests
-let testIndex = 0;
-const makeDistDir = () => resolve(tmpdir(), `gilbert-templates-${++testIndex}`);
+// Each test gets its own isolated tmp subdirectory with a random suffix — no shared state between tests
+const makeDistDir = async () => {
+  return await mkdtemp(resolve(tmpdir(), "gilbert-templates-"));
+};
 
 // Create GilbertFS adapter instances for testing
 const dataAdapter = new GilbertFS({ base: dataDir });
@@ -27,8 +28,7 @@ const outputAdapter = new GilbertFS(); // No base, use direct path
 
 await describe("Gilbert Template Pipeline", { concurrency: 1 }, () => {
   test("should process templates and generate HTML files", async () => {
-    const distDir = makeDistDir();
-    await mkdir(distDir, { recursive: true });
+    const distDir = await makeDistDir();
 
     // Create Gilbert instance with new API signature
     const gilbert = new Gilbert(
@@ -54,8 +54,7 @@ await describe("Gilbert Template Pipeline", { concurrency: 1 }, () => {
   });
 
   test("should populate template variables with data from JSON files", async () => {
-    const distDir = makeDistDir();
-    await mkdir(distDir, { recursive: true });
+    const distDir = await makeDistDir();
 
     // Create Gilbert instance with new API signature
     const gilbert = new Gilbert(
@@ -82,8 +81,7 @@ await describe("Gilbert Template Pipeline", { concurrency: 1 }, () => {
   });
 
   test("should load templates from multiple streams (array input)", async () => {
-    const distDir = makeDistDir();
-    await mkdir(distDir, { recursive: true });
+    const distDir = await makeDistDir();
 
     // Two separate adapter instances: one for root templates, one for components.
     // home.hbs uses {{> components/head.hbs}}, {{> components/header.hbs}}, etc.

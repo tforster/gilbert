@@ -1,7 +1,7 @@
 // Gilbert-FS Write Functionality Tests
 import { test, describe } from "node:test";
 import assert from "node:assert";
-import { readFile, mkdir, stat, readdir } from "node:fs/promises";
+import { readFile, mkdtemp, stat, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -9,12 +9,9 @@ import path from "node:path";
 import GilbertFS from "../lib/index.js";
 import GilbertFile from "@tforster/gilbert-file";
 
-// Each test gets its own isolated tmp subdirectory — no shared state between tests
-let testIndex = 0;
+// Each test gets its own isolated tmp subdirectory with a random suffix — no shared state between tests
 const makeDistDir = async () => {
-  const dir = path.join(tmpdir(), `gilbert-fs-write-${++testIndex}`);
-  await mkdir(dir, { recursive: true });
-  return dir;
+  return await mkdtemp(path.join(tmpdir(), "gilbert-fs-write-"));
 };
 
 describe("GilbertFS Write Operations", { concurrency: 1 }, async () => {

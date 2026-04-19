@@ -1,19 +1,16 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
-import { readdir, stat, readFile, mkdir } from "node:fs/promises";
+import { readdir, stat, readFile, mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 
 // Gilbert and dependencies
 import Gilbert from "@tforster/gilbert";
 import GilbertGitHub from "../lib/index.js";
 
-// Each test gets its own isolated tmp subdirectory — no shared state between tests
-let testIndex = 0;
+// Each test gets its own isolated tmp subdirectory with a random suffix — no shared state between tests
 const makeDistDir = async () => {
-  const dir = resolve(tmpdir(), `gilbert-github-${++testIndex}`);
-  await mkdir(dir, { recursive: true });
-  return dir;
+  return await mkdtemp(resolve(tmpdir(), "gilbert-github-"));
 };
 
 // Test configuration - using the real StopTheParty repository

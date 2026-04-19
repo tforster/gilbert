@@ -1,7 +1,7 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
-import { readdir, stat, readFile, mkdir, rm } from "node:fs/promises";
+import { readdir, stat, readFile, mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 
 // Gilbert and dependencies
@@ -13,9 +13,10 @@ const __dirname = resolve(new URL(".", import.meta.url).pathname);
 const srcDir = resolve(__dirname, "../../../tests/src");
 const filesDir = resolve(srcDir, "files");
 
-// Each test gets its own isolated tmp subdirectory — no shared state between tests
-let testIndex = 0;
-const makeDistDir = () => resolve(tmpdir(), `gilbert-static-files-${++testIndex}`);
+// Each test gets its own isolated tmp subdirectory with a random suffix — no shared state between tests
+const makeDistDir = async () => {
+  return await mkdtemp(resolve(tmpdir(), "gilbert-static-files-"));
+};
 
 // Create GilbertFS adapter instance for testing new constructor pattern
 const fsAdapter = new GilbertFS({ base: srcDir });
@@ -62,8 +63,7 @@ await describe("Gilbert Static Files Pipeline", { concurrency: 1 }, () => {
 
   test("should process static files through Gilbert pipeline", async () => {
     // Each test gets a fresh, isolated tmp subdirectory
-    const distDir = makeDistDir();
-    await mkdir(distDir, { recursive: true });
+    const distDir = await makeDistDir();
 
     // Get expected file count from source directory
     const inputFiles = await getAllFiles(filesDir);
@@ -148,8 +148,7 @@ await describe("Gilbert Static Files Pipeline", { concurrency: 1 }, () => {
 
   test("should preserve file structure and paths", async () => {
     // Each test gets a fresh, isolated tmp subdirectory
-    const distDir = makeDistDir();
-    await mkdir(distDir, { recursive: true });
+    const distDir = await makeDistDir();
 
     const gilbert = new Gilbert(
       {
@@ -182,8 +181,7 @@ await describe("Gilbert Static Files Pipeline", { concurrency: 1 }, () => {
 
   test("should pass through files without modification", async () => {
     // Each test gets a fresh, isolated tmp subdirectory
-    const distDir = makeDistDir();
-    await mkdir(distDir, { recursive: true });
+    const distDir = await makeDistDir();
 
     const gilbert = new Gilbert(
       {
@@ -210,8 +208,7 @@ await describe("Gilbert Static Files Pipeline", { concurrency: 1 }, () => {
 
   test("should handle array patterns to filter specific file types", async () => {
     // Each test gets a fresh, isolated tmp subdirectory; sub-phases use sibling dirs
-    const distDir = makeDistDir();
-    await mkdir(distDir, { recursive: true });
+    const distDir = await makeDistDir();
 
     // Create Gilbert instance for array pattern test
     const gilbert1 = new Gilbert(
@@ -249,8 +246,7 @@ await describe("Gilbert Static Files Pipeline", { concurrency: 1 }, () => {
     }
 
     // Test single pattern vs array pattern should be equivalent for same pattern
-    const distDir2 = makeDistDir();
-    await mkdir(distDir2, { recursive: true });
+    const distDir2 = await makeDistDir();
 
     // Create new Gilbert instance for single pattern test
     const gilbert2 = new Gilbert(
@@ -267,8 +263,7 @@ await describe("Gilbert Static Files Pipeline", { concurrency: 1 }, () => {
     const singlePatternFiles = await getAllFiles(distDir2);
 
     // Clean and test array with single pattern
-    const distDir3 = makeDistDir();
-    await mkdir(distDir3, { recursive: true });
+    const distDir3 = await makeDistDir();
 
     // Create new Gilbert instance for array pattern test
     const gilbert3 = new Gilbert(
@@ -294,8 +289,7 @@ await describe("Gilbert Static Files Pipeline", { concurrency: 1 }, () => {
 
   test("should process static files from multiple streams (array input)", async () => {
     // Each test gets a fresh, isolated tmp subdirectory
-    const distDir = makeDistDir();
-    await mkdir(distDir, { recursive: true });
+    const distDir = await makeDistDir();
 
     // Two independent streams targeting different subsets of files.
     // files/*.txt covers root-level text files; files/assets/**/* covers nested binary/asset files.
