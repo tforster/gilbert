@@ -4,9 +4,9 @@
     "url": "https://github.com/tforster/gilbert/issues"
   },
   "dependencies": {
-    "@tforster/gilbert-file": "^1.0.0-rc.1",
-    "@tforster/gilbert-glob": "^1.0.0-rc.1",
-    "@tforster/gilbert-logger": "^1.0.0-rc.1"
+    "@tforster/gilbert-file": "^1.0.0-rc.4",
+    "@tforster/gilbert-glob": "^1.0.0-rc.4",
+    "@tforster/gilbert-logger": "^1.0.0-rc.4"
   },
   "description": "GitHub repository source adapter for Gilbert static site generator",
   "engines": {
@@ -35,13 +35,13 @@
     "access": "public"
   },
   "repository": {
+    "directory": "services/gilbert-github",
     "type": "git",
-    "url": "git+ssh://git@github.com/tforster/gilbert.git",
-    "directory": "services/gilbert-github"
+    "url": "git+ssh://git@github.com/tforster/gilbert.git"
   },
   "scripts": {
     "test": "node --test tests/index.test.js --test-concurrency=1"
   },
   "type": "module",
-  "version": "1.0.0-rc.1"
+  "version": "1.0.0-rc.4"
 }

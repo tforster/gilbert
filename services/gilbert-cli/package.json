@@ -4,11 +4,11 @@
   },
   "dependencies": {
     "commander": "^14.0.2",
-    "gilbert": "@tforster/gilbert@1.0.0-rc.1",
+    "gilbert": "@tforster/gilbert@1.0.0-rc.4",
     "vinyl-fs": "4.0.2"
   },
   "name": "@tforster/gilbert-cli",
   "private": true,
   "type": "module",
-  "version": "1.0.0"
+  "version": "1.0.1-0"
 }
