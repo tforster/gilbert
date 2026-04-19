@@ -16,21 +16,21 @@ class TemplatePipeline {
   // Private properties
   /** @type {ReadableStream} */
   #readableDataStream;
-  /** @type {ReadableStream} */
-  #readableTemplatesStream;
+  /** @type {ReadableStream[]} */
+  #readableTemplatesStreams;
   #templates = {};
   #logger;
 
   /**
    * Creates an instance of TemplatePipeline.
    * @param {*} options
-   * @param {*} readableDataStream
-   * @param {*} readableTemplatesStream
+   * @param {ReadableStream} readableDataStream
+   * @param {ReadableStream|ReadableStream[]} readableTemplatesStream - One or more template streams
    * @memberof TemplatePipeline
    */
   constructor(options, readableDataStream, readableTemplatesStream) {
     this.#readableDataStream = readableDataStream;
-    this.#readableTemplatesStream = readableTemplatesStream;
+    this.#readableTemplatesStreams = Array.isArray(readableTemplatesStream) ? readableTemplatesStream : [readableTemplatesStream];
     // Enable debug logging when the GILBERT_DEBUG global is set (WinterCG-compatible)
     this.#logger = createLogger(globalThis.GILBERT_DEBUG === "true");
   }
@@ -125,24 +125,36 @@ class TemplatePipeline {
    * @memberof TemplatePipeline
    */
   async #loadTemplates() {
-    // Create a collector function for processing Web API streams
-    const collector = WebStreamUtils.createFileCollector(async (file) => {
-      // Use file.relative directly as the template key since GilbertFS base path handling
-      // ensures the relative path is already correctly calculated from the base
-      if (!file.isDirectory()) {
-        const templateKey = file.relative;
+    // Fan-out over all template streams concurrently. Load time = max(individual stream
+    // durations), not their sum — a strict performance win for multi-source scenarios.
+    await Promise.all(
+      this.#readableTemplatesStreams.map((stream) => {
+        const collector = WebStreamUtils.createFileCollector(async (file) => {
+          // Use file.relative directly as the template key since GilbertFS base path handling
+          // ensures the relative path is already correctly calculated from the base
+          if (!file.isDirectory()) {
+            const templateKey = file.relative;
 
-        // Get the content of the template
-        const content = await file.toString();
+            // Collision guard: reserve the slot synchronously before awaiting file content.
+            // This prevents a race where two concurrent streams both pass the check before
+            // either writes, which would silently produce non-deterministic last-wins behaviour.
+            if (templateKey in this.#templates) {
+              throw new Error(
+                `Template collision: "${templateKey}" is defined in multiple template sources. Each template key must be unique across all sources.`
+              );
+            }
+            this.#templates[templateKey] = null; // reserve slot
 
-        // Compile as a template (Gilbert's approach for 10 years)
-        this.#templates[templateKey] = handlebars.compile(content);
+            // Get the content of the template
+            const content = await file.toString();
 
-        // Also register as partial with raw content (needed for newer Handlebars)
-      }
-    });
-    // Pipe the templates stream to the collector to load all templates into memory
-    await this.#readableTemplatesStream.pipeTo(collector.stream);
+            // Compile as a template (Gilbert's approach for 10 years)
+            this.#templates[templateKey] = handlebars.compile(content);
+          }
+        });
+        return stream.pipeTo(collector.stream);
+      })
+    );
 
     // Set partials to templates (Gilbert's 10-year tradition)
     // This allows templates to reference each other via {{> templateName }}

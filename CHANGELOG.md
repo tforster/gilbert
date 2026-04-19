@@ -13,7 +13,21 @@ Each workspace/package maintains its own `CHANGELOG.md` for package-specific cha
 - [services/gilbert-cli/CHANGELOG.md](./services/gilbert-cli/CHANGELOG.md)
 - [services/gilbert-file/CHANGELOG.md](./services/gilbert-file/CHANGELOG.md)
 
-## [v1.0.0-rc.1](https://github.com/tforster/gilbert/compare/v1.0.0-beta.5...v1.0.0-rc.1) - 2025-06-09
+## [v1.0.0-rc.2](https://github.com/tforster/gilbert/compare/v1.0.0-rc.1...v1.0.0-rc.2) - 2026-04-07
+
+### Added
+
+- **Multi-source template loading** — `TemplatePipeline` now accepts a `ReadableStream | ReadableStream[]` for the `templates` option. All sources are loaded concurrently via `Promise.all()` and merged into a single in-memory template map before rendering begins. Load time equals the slowest individual source, not their sum.
+- **Multi-source static files** — the `staticFiles` option in `Gilbert` now accepts a `ReadableStream | ReadableStream[]`. Each stream is processed through its own `StaticFilesPipeline` instance, all running concurrently.
+- **Template collision detection** — when the same template key appears in more than one template source, Gilbert throws a descriptive error (`Template collision: "x.hbs" is defined in multiple template sources`) rather than silently overwriting. The collision check is atomic (synchronous slot reservation before the async read) to prevent race conditions under concurrent stream loading.
+- **Unified test summary** — `devops/test.js` wraps the workspace test runner, streams output in real time, and prints a consolidated pass/fail total across all packages at the end.
+
+### Changed
+
+- All test suites across the monorepo (`gilbert`, `gilbert-fs`, `gilbert-github`) now write output to unique per-test subdirectories under `os.tmpdir()` rather than a shared `tests/dist/` folder, eliminating intermittent failures caused by concurrent test runs.
+- Root `package.json` `test` script updated to invoke `node devops/test.js` for the unified summary output.
+
+## [v1.0.0-rc.1](https://github.com/tforster/gilbert/compare/v1.0.0-beta.5...v1.0.0-rc.1) - 2026-04-06
 
 ### Changed
 

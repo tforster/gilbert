@@ -68,7 +68,7 @@ class SimpleHtmlMinifier {
 
     // Basic JS minification within <script> tags (very conservative)
     if (config.minifyJS) {
-      result = result.replace(/<script[^>]*>([\s\S]*?)<\/script>/gi, (match, js) => {
+      result = result.replace(/<script\b[^>]*>([\s\S]*?)<\/script\b[^>]*>/gi, (match, js) => {
         // Only do very safe JS minification
         const minifiedJS = js
           .replace(/\/\/.*$/gm, "") // Remove single-line comments

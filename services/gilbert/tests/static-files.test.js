@@ -1,7 +1,8 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
-import { readdir, stat, readFile, mkdir, rm } from "node:fs/promises";
+import { readdir, stat, readFile, mkdir, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 
 // Gilbert and dependencies
 import Gilbert from "../lib/index.js";
@@ -11,7 +12,11 @@ import GilbertFS from "@tforster/gilbert-fs";
 const __dirname = resolve(new URL(".", import.meta.url).pathname);
 const srcDir = resolve(__dirname, "../../../tests/src");
 const filesDir = resolve(srcDir, "files");
-const distDir = resolve(__dirname, "dist");
+
+// Each test gets its own isolated tmp subdirectory with a random suffix — no shared state between tests
+const makeDistDir = async () => {
+  return await mkdtemp(resolve(tmpdir(), "gilbert-static-files-"));
+};
 
 // Create GilbertFS adapter instance for testing new constructor pattern
 const fsAdapter = new GilbertFS({ base: srcDir });
@@ -57,8 +62,8 @@ await describe("Gilbert Static Files Pipeline", { concurrency: 1 }, () => {
   // });
 
   test("should process static files through Gilbert pipeline", async () => {
-    // Clean output directory
-    await rm(distDir, { recursive: true, force: true });
+    // Each test gets a fresh, isolated tmp subdirectory
+    const distDir = await makeDistDir();
 
     // Get expected file count from source directory
     const inputFiles = await getAllFiles(filesDir);
@@ -142,8 +147,8 @@ await describe("Gilbert Static Files Pipeline", { concurrency: 1 }, () => {
   });
 
   test("should preserve file structure and paths", async () => {
-    // Clean output directory
-    await rm(distDir, { recursive: true, force: true });
+    // Each test gets a fresh, isolated tmp subdirectory
+    const distDir = await makeDistDir();
 
     const gilbert = new Gilbert(
       {
@@ -175,8 +180,8 @@ await describe("Gilbert Static Files Pipeline", { concurrency: 1 }, () => {
   });
 
   test("should pass through files without modification", async () => {
-    // Clean output directory
-    await rm(distDir, { recursive: true, force: true });
+    // Each test gets a fresh, isolated tmp subdirectory
+    const distDir = await makeDistDir();
 
     const gilbert = new Gilbert(
       {
@@ -202,8 +207,8 @@ await describe("Gilbert Static Files Pipeline", { concurrency: 1 }, () => {
   });
 
   test("should handle array patterns to filter specific file types", async () => {
-    // Clean output directory
-    await rm(distDir, { recursive: true, force: true });
+    // Each test gets a fresh, isolated tmp subdirectory; sub-phases use sibling dirs
+    const distDir = await makeDistDir();
 
     // Create Gilbert instance for array pattern test
     const gilbert1 = new Gilbert(
@@ -241,7 +246,7 @@ await describe("Gilbert Static Files Pipeline", { concurrency: 1 }, () => {
     }
 
     // Test single pattern vs array pattern should be equivalent for same pattern
-    await rm(distDir, { recursive: true, force: true });
+    const distDir2 = await makeDistDir();
 
     // Create new Gilbert instance for single pattern test
     const gilbert2 = new Gilbert(
@@ -253,12 +258,12 @@ await describe("Gilbert Static Files Pipeline", { concurrency: 1 }, () => {
       }
     );
 
-    await (await gilbert2.compile()).pipeTo(fsAdapter.write(distDir));
+    await (await gilbert2.compile()).pipeTo(fsAdapter.write(distDir2));
 
-    const singlePatternFiles = await getAllFiles(distDir);
+    const singlePatternFiles = await getAllFiles(distDir2);
 
     // Clean and test array with single pattern
-    await rm(distDir, { recursive: true, force: true });
+    const distDir3 = await makeDistDir();
 
     // Create new Gilbert instance for array pattern test
     const gilbert3 = new Gilbert(
@@ -270,9 +275,9 @@ await describe("Gilbert Static Files Pipeline", { concurrency: 1 }, () => {
       }
     );
 
-    await (await gilbert3.compile()).pipeTo(fsAdapter.write(distDir));
+    await (await gilbert3.compile()).pipeTo(fsAdapter.write(distDir3));
 
-    const arrayPatternFiles = await getAllFiles(distDir);
+    const arrayPatternFiles = await getAllFiles(distDir3);
 
     // Should produce same results
     assert.equal(
@@ -280,5 +285,43 @@ await describe("Gilbert Static Files Pipeline", { concurrency: 1 }, () => {
       arrayPatternFiles.length,
       "Single pattern and array with single pattern should produce same results"
     );
+  });
+
+  test("should process static files from multiple streams (array input)", async () => {
+    // Each test gets a fresh, isolated tmp subdirectory
+    const distDir = await makeDistDir();
+
+    // Two independent streams targeting different subsets of files.
+    // files/*.txt covers root-level text files; files/assets/**/* covers nested binary/asset files.
+    // Together they should produce a non-overlapping union in the output.
+    const stream1 = fsAdapter.read("files/*.txt");
+    const stream2 = fsAdapter.read("files/assets/**/*");
+
+    const gilbert = new Gilbert(
+      {
+        staticFiles: [stream1, stream2],
+      },
+      {
+        debug: true,
+      }
+    );
+
+    await (await gilbert.compile()).pipeTo(fsAdapter.write(distDir));
+
+    const outputFiles = await getAllFiles(distDir);
+
+    // Both streams must have contributed files
+    assert.ok(outputFiles.length > 0, "Should have output files from multiple streams");
+
+    const txtFiles = outputFiles.filter((f) => f.path.endsWith(".txt"));
+    const assetFiles = outputFiles.filter((f) => f.relativePath.startsWith("files/assets/"));
+
+    assert.ok(txtFiles.length > 0, "Should have .txt files from stream 1");
+    assert.ok(assetFiles.length > 0, "Should have asset files from stream 2");
+
+    // Verify no file is duplicated (all relative paths are unique)
+    const relativePaths = outputFiles.map((f) => f.relativePath);
+    const uniquePaths = new Set(relativePaths);
+    assert.equal(uniquePaths.size, relativePaths.length, "No files should be duplicated across streams");
   });
 });

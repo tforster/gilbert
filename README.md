@@ -95,13 +95,17 @@ import GilbertFS from "@tforster/gilbert-fs";
 
 const dataAdapter = new GilbertFS({ base: "./src/data" });
 const templatesAdapter = new GilbertFS({ base: "./src/templates" });
+const componentsAdapter = new GilbertFS({ base: "./src/components" });
 
 const gilbert = new Gilbert({
   data: { source: dataAdapter.read("**/*.json") },
-  templates: templatesAdapter.read("**/*.hbs"),
+  // Accept an array of streams to load templates from multiple sources.
+  // All sources are merged into a single in-memory template map before rendering begins.
+  templates: [templatesAdapter.read("**/*.hbs"), componentsAdapter.read("**/*.hbs")],
   scripts: ["./src/scripts/main.js"],
   stylesheets: ["./src/stylesheets/main.css"],
-  staticFiles: new GilbertFS({ base: "./src/files" }).read("**/*"),
+  // staticFiles also accepts an array — each stream is processed independently.
+  staticFiles: [new GilbertFS({ base: "./src/files" }).read("**/*"), new GilbertFS({ base: "./src/assets" }).read("**/*")],
 });
 
 await gilbert.compile();

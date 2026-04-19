@@ -2,25 +2,22 @@ import { test, describe } from "node:test";
 import assert from "node:assert";
 import { existsSync } from "node:fs";
 import { readdir, readFile, rm, mkdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import Gilbert from "../lib/index.js";
 import GilbertFS from "@tforster/gilbert-fs";
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 const rootSrcDir = path.resolve(__dirname, "../../../tests/src");
+const distDir = path.join(tmpdir(), "gilbert-scripts");
 
 // Create GilbertFS adapter instance
 const fsAdapter = new GilbertFS();
 
 await describe("Gilbert Scripts Pipeline", { concurrency: 1 }, () => {
   const cleanDist = async () => {
-    const distPath = path.join(__dirname, "dist");
-    try {
-      await rm(distPath, { recursive: true, force: true });
-      await mkdir(distPath, { recursive: true });
-    } catch {
-      await mkdir(distPath, { recursive: true });
-    }
+    await rm(distDir, { recursive: true, force: true });
+    await mkdir(distDir, { recursive: true });
   };
 
   test("should process scripts with StopTheParty app structure", async () => {
@@ -39,16 +36,15 @@ await describe("Gilbert Scripts Pipeline", { concurrency: 1 }, () => {
     );
 
     // Compile and pipe Gilbert output to filesystem destination using adapter
-    await (await gilbert.compile()).pipeTo(fsAdapter.write(path.join(__dirname, "dist")));
+    await (await gilbert.compile()).pipeTo(fsAdapter.write(distDir));
 
-    const outputDir = path.join(__dirname, "dist");
-    assert.ok(existsSync(outputDir), "Output directory should exist");
+    assert.ok(existsSync(distDir), "Output directory should exist");
 
-    const files = await readdir(outputDir);
+    const files = await readdir(distDir);
     const jsFiles = files.filter((file) => file.endsWith(".js"));
     assert.ok(jsFiles.length > 0, "At least one JavaScript file should be generated");
 
-    const mainJsPath = path.join(outputDir, "main.js");
+    const mainJsPath = path.join(distDir, "main.js");
     assert.ok(existsSync(mainJsPath), "main.js should exist");
 
     const content = await readFile(mainJsPath, "utf8");
@@ -75,19 +71,18 @@ await describe("Gilbert Scripts Pipeline", { concurrency: 1 }, () => {
     );
 
     // Compile and pipe Gilbert output to filesystem destination using adapter
-    await (await gilbert.compile()).pipeTo(fsAdapter.write(path.join(__dirname, "dist")));
+    await (await gilbert.compile()).pipeTo(fsAdapter.write(distDir));
 
-    const outputDir = path.join(__dirname, "dist");
-    assert.ok(existsSync(outputDir), "Output directory should exist");
+    assert.ok(existsSync(distDir), "Output directory should exist");
 
     // Get files immediately after this specific test run
-    const files = await readdir(outputDir);
+    const files = await readdir(distDir);
     const jsFiles = files.filter((file) => file.endsWith(".js"));
     assert.ok(jsFiles.length > 0, "At least one JavaScript file should be generated");
 
     // Should not have sourcemap files since sourcemap: false
     // Note: This test may see files from previous test runs, so we check the JS content instead
-    const mainJsPath = path.join(outputDir, "main.js");
+    const mainJsPath = path.join(distDir, "main.js");
     const content = await readFile(mainJsPath, "utf8");
 
     // Verify this is the unminified version by checking for sourcemap reference
