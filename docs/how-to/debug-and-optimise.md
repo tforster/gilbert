@@ -124,8 +124,8 @@ Streams cannot be reused. Create new adapter instances for each build call:
 ```javascript
 // Bad — reusing stream objects
 const stream = adapter.read("**/*");
-await gilbert1.compile();
-await gilbert2.compile(); // Will fail — stream already consumed
+await gilbert1.start();
+await gilbert2.start(); // Will fail — stream already consumed
 
 // Good — fresh adapter instances per build
 const gilbert = new Gilbert({
@@ -142,7 +142,7 @@ This race condition occurs when a fast-completing pipeline closes the merge stre
 
 ```javascript
 try {
-  await gilbert.compile().pipeTo(outputAdapter.write("./dist"));
+  await gilbert.start().pipeTo(outputAdapter.write("./dist"));
 } catch (error) {
   if (error.file) {
     console.error(`Error in file: ${error.file.path}`);
@@ -168,7 +168,7 @@ See [Memory Optimisation](#52-memory-optimisation) below.
 
 ```javascript
 const start = performance.now();
-await gilbert.compile().pipeTo(outputAdapter.write("./dist"));
+await gilbert.start().pipeTo(outputAdapter.write("./dist"));
 const duration = performance.now() - start;
 console.log(`Build completed in ${duration.toFixed(2)}ms`);
 ```

@@ -55,7 +55,7 @@ import GilbertFS from "@tforster/gilbert-fs";
 const gilbert = new Gilbert({ relativeRoot: "./src" });
 
 // Configure Gilbert with your content
-await gilbert.compile({
+await gilbert.start({
   uris: { data: dataStream, theme: templateStream },
   scripts: { entryPoints: ["./src/main.js"] },
   stylesheets: { entryPoints: ["./src/styles.css"] },

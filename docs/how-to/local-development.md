@@ -60,7 +60,7 @@ const buildSite = async () => {
     { debug: true }
   );
 
-  await gilbert.compile().pipeTo(outputAdapter.write("./dist"));
+  await gilbert.start().pipeTo(outputAdapter.write("./dist"));
   console.log("Build complete.");
 };
 

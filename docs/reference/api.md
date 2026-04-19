@@ -46,13 +46,13 @@ const gilbert = new Gilbert(
 
 **Returns:** `Gilbert` — Gilbert instance
 
-**`gilbert.compile()`**
+**`gilbert.start()`**
 
 Compiles all configured content through the appropriate pipelines.
 
 ```javascript
 // Compile and pipe to output
-await gilbert.compile().pipeTo(outputAdapter.write("./dist"));
+await gilbert.start().pipeTo(outputAdapter.write("./dist"));
 ```
 
 **Parameters:** none

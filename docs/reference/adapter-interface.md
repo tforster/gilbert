@@ -98,7 +98,7 @@ const gilbert = new Gilbert(
   { debug: true }
 );
 
-await gilbert.compile().pipeTo(outputAdapter.write("./dist"));
+await gilbert.start().pipeTo(outputAdapter.write("./dist"));
 ```
 
 **Cross-platform adapter swapping:**

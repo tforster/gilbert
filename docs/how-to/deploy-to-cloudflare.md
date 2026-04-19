@@ -73,7 +73,7 @@ export default {
         data: { source: contentAdapter.read("data/**/*.json") },
       });
 
-      await gilbert.compile().pipeTo(r2Adapter.write("/"));
+      await gilbert.start().pipeTo(r2Adapter.write("/"));
 
       return new Response(JSON.stringify({ message: "Published successfully" }), {
         headers: { "Content-Type": "application/json" },

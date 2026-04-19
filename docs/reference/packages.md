@@ -47,7 +47,7 @@ const gilbert = new Gilbert(
 );
 
 // compile() returns ReadableStream directly
-const outputStream = await gilbert.compile();
+const outputStream = await gilbert.start();
 ```
 
 ## 2. gilbert-file (Virtual File Objects)

@@ -298,7 +298,7 @@ The primary integration point is with the Gilbert core engine via stream piping.
 ```javascript
 // Assumes `env.MY_BUCKET` is an R2 binding
 const r2Adapter = new GilbertR2(env.MY_BUCKET);
-await gilbert.compile().pipeTo(r2Adapter.write("/my-site"));
+await gilbert.start().pipeTo(r2Adapter.write("/my-site"));
 ```
 
 ### Error Handling Strategy

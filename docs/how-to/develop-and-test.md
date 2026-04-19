@@ -90,7 +90,7 @@ describe("My Pipeline Test", () => {
       data: { source: dataAdapter.read("**/*.json") },
     });
 
-    await gilbert.compile().pipeTo(outputAdapter.write(OUTPUT_DIR));
+    await gilbert.start().pipeTo(outputAdapter.write(OUTPUT_DIR));
 
     // Verify output
     const { readdir } = await import("node:fs/promises");

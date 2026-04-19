@@ -74,7 +74,7 @@ const gilbert = new Gilbert(
 );
 
 // compile() returns ReadableStream directly
-await gilbert.compile().pipeTo(outputAdapter.write("./dist"));
+await gilbert.start().pipeTo(outputAdapter.write("./dist"));
 ```
 
 ## 3. Project Structure
@@ -165,7 +165,7 @@ const gilbert = new Gilbert(
   { debug: true }
 );
 
-await gilbert.compile().pipeTo(outputAdapter.write("./dist"));
+await gilbert.start().pipeTo(outputAdapter.write("./dist"));
 ```
 
 ### 4.3 Selective Pipeline Execution

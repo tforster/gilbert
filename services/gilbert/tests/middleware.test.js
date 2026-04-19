@@ -77,7 +77,7 @@ await describe("Gilbert Data Middleware", { concurrency: 1 }, () => {
     );
 
     // Compile and output using new API (returns stream directly)
-    await (await gilbert.compile()).pipeTo(outputAdapter.write(testDistDir));
+    await (await gilbert.start()).pipeTo(outputAdapter.write(testDistDir));
 
     // Verify that files were generated
     const generatedFiles = await readdir(testDistDir);
@@ -112,7 +112,7 @@ await describe("Gilbert Data Middleware", { concurrency: 1 }, () => {
     );
 
     // Compile and output
-    await (await gilbert.compile()).pipeTo(outputAdapter.write(testDistDir));
+    await (await gilbert.start()).pipeTo(outputAdapter.write(testDistDir));
 
     // Verify files were generated
     const generatedFiles = await readdir(testDistDir);
@@ -186,7 +186,7 @@ await describe("Gilbert Data Middleware", { concurrency: 1 }, () => {
 
     // Compile and output using new API (returns stream directly)
     try {
-      await (await gilbert.compile()).pipeTo(outputAdapter.write(testDistDir));
+      await (await gilbert.start()).pipeTo(outputAdapter.write(testDistDir));
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("Compilation failed:", error);

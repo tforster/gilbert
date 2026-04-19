@@ -48,7 +48,7 @@ test("Gilbert full website build", async () => {
   );
 
   // Compile and execute the build using adapter
-  await (await gilbert.compile()).pipeTo(outputAdapter.write(distDir));
+  await (await gilbert.start()).pipeTo(outputAdapter.write(distDir));
 
   // Verify website was built
   assert.ok(existsSync(distDir), "Website should be built");

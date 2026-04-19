@@ -39,7 +39,7 @@ export default {
       data: { source: github.read("**/*.json") },
     });
 
-    await gilbert.compile().pipeTo(r2.write("/"));
+    await gilbert.start().pipeTo(r2.write("/"));
 
     return new Response("Site published successfully");
   },
@@ -89,7 +89,7 @@ Creates a WritableStream for uploading GilbertFile objects to R2.
 **Example:**
 
 ```javascript
-await gilbert.compile().pipeTo(
+await gilbert.start().pipeTo(
   r2.write("/", {
     cacheControl: {
       html: 300, // 5 minutes
