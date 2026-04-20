@@ -142,7 +142,8 @@ This race condition occurs when a fast-completing pipeline closes the merge stre
 
 ```javascript
 try {
-  await gilbert.start().pipeTo(outputAdapter.write("./dist"));
+  const stream = await gilbert.start();
+  await stream.pipeTo(outputAdapter.write("./dist"));
 } catch (error) {
   if (error.file) {
     console.error(`Error in file: ${error.file.path}`);
