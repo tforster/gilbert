@@ -167,36 +167,40 @@ await describe("Gilbert Debug Output", { concurrency: 1 }, () => {
     };
 
     try {
-      // Create Gilbert with invalid configuration that will cause an error
+      // Use a stream that immediately errors to guarantee a pipeline failure
+      const failingStream = new ReadableStream({
+        start(controller) {
+          controller.error(new Error("Guaranteed test error"));
+        },
+      });
+
       const gilbert = new Gilbert(
         {
-          templates: templatesAdapter.read("**/*.hbs"),
-          // Intentionally pass undefined data source to trigger error
-          data: {
-            source: undefined,
-          },
+          staticFiles: failingStream,
         },
         {
-          debug: false, // Even with debug=false, errors should show
+          debug: false, // Even with debug=false, errors must appear on stderr
         }
       );
 
       try {
-        // This should fail
         await (await gilbert.compile()).pipeTo(
           new WritableStream({
             write() {},
           })
         );
-
-        // Wait a bit for any async operations
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      } catch (e) {
-        // Expected to fail, we're just checking if errors are logged
+      } catch {
+        // Expected — the failing stream throws during pipeTo
       }
 
-      // Even with debug=false, critical errors should be logged
-      // (Note: this test might not trigger an error depending on implementation, but the principle is tested)
+      // Even with debug=false, pipeline errors must be logged to console.error
+      assert.ok(errorOutput.length > 0, "Should have error output even when debug=false");
+
+      // The logged error should reference the failing pipeline or the error message
+      const hasErrorMessage = errorOutput.some((args) =>
+        args.some((arg) => (typeof arg === "string" && arg.includes("StaticFiles")) || (arg instanceof Error && arg.message.includes("Guaranteed test error")))
+      );
+      assert.ok(hasErrorMessage, "Error output should include the pipeline name or the error message");
     } finally {
       // Restore original console.error
       // eslint-disable-next-line no-console
