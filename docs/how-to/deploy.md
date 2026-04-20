@@ -68,7 +68,8 @@ const gilbert = new Gilbert(
   { debug: !isProd }
 );
 
-await gilbert.start().pipeTo(outputAdapter.write("./dist"));
+const outputStream = await gilbert.start();
+await outputStream.pipeTo(outputAdapter.write("./dist"));
 ```
 
 ### 2.2 Vercel
