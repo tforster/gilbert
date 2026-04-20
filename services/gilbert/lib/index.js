@@ -25,6 +25,7 @@ class Gilbert {
   #mergeController;
   #activePipelines;
   #logger;
+  #debugEnabled;
 
   /**
    * Creates an instance of Gilbert.
@@ -42,8 +43,8 @@ class Gilbert {
     this.#options = config;
 
     // Create logger based on config.debug option (falls back to globalThis.GILBERT_DEBUG for backward compatibility)
-    const debugEnabled = this.#options.debug ?? (globalThis.GILBERT_DEBUG === "true");
-    this.#logger = createLogger(debugEnabled);
+    this.#debugEnabled = this.#options.debug ?? (globalThis.GILBERT_DEBUG === "true");
+    this.#logger = createLogger(this.#debugEnabled);
 
     // Public properties exposed to the calling application
     this.resources = 0;
@@ -68,9 +69,7 @@ class Gilbert {
       },
 
       cancel() {
-        if (self.#options.debug) {
-          self.#logger.debug("MergeStream cancelled");
-        }
+        self.#logger.debug("MergeStream cancelled");
       },
     });
   }
@@ -117,15 +116,10 @@ class Gilbert {
           // Check if controller is still open before closing
           try {
             this.#mergeController.close();
-
-            if (this.#options.debug) {
-              this.#logger.debug(`MergeStream ended: ${this.resources} resources, ${this.size} bytes`);
-            }
+            this.#logger.debug(`MergeStream ended: ${this.resources} resources, ${this.size} bytes`);
           } catch {
             // Controller might already be closed, ignore the error
-            if (this.#options.debug) {
-              this.#logger.debug("MergeStream already closed");
-            }
+            this.#logger.debug("MergeStream already closed");
           }
         }
       }
@@ -167,9 +161,7 @@ class Gilbert {
         this.#enqueueFile(value);
       }
 
-      if (this.#options.debug) {
-        this.#logger.debug(`${pipelineName} completed`);
-      }
+      this.#logger.debug(`${pipelineName} completed`);
     } catch (error) {
       this.#logger.error(`Pipeline ${pipelineName} failed:`, error);
       throw error;
@@ -250,9 +242,7 @@ class Gilbert {
       // Process the template pipeline stream
       pipelinePromises.push(this.#processPipeline(templatePipeline.stream, "Templates"));
 
-      if (this.#options.debug) {
-        this.#logger.debug("Templates pipeline started");
-      }
+      this.#logger.debug("Templates pipeline started");
     }
 
     // Static files processing — accepts a single ReadableStream or an array of ReadableStreams
@@ -266,9 +256,7 @@ class Gilbert {
         pipelinePromises.push(this.#processPipeline(staticReader, "StaticFiles"));
       }
 
-      if (this.#options.debug) {
-        this.#logger.debug(`Static files pipeline started (${staticStreams.length} stream(s))`);
-      }
+      this.#logger.debug(`Static files pipeline started (${staticStreams.length} stream(s))`);
     }
 
     // Scripts (JavaScript bundling and optimisation)
@@ -278,9 +266,7 @@ class Gilbert {
 
       pipelinePromises.push(this.#processPipeline(scriptsStream, "Scripts"));
 
-      if (this.#options.debug) {
-        this.#logger.debug("Scripts pipeline started");
-      }
+      this.#logger.debug("Scripts pipeline started");
     }
 
     // Stylesheets (CSS bundling and optimisation)
@@ -290,9 +276,7 @@ class Gilbert {
 
       pipelinePromises.push(this.#processPipeline(stylesheetsStream, "Stylesheets"));
 
-      if (this.#options.debug) {
-        this.#logger.debug("Stylesheets pipeline started");
-      }
+      this.#logger.debug("Stylesheets pipeline started");
     }
 
     // Start processing all pipelines concurrently
@@ -305,14 +289,10 @@ class Gilbert {
           if (this.#mergeController) {
             try {
               this.#mergeController.close();
-              if (this.#options.debug) {
-                this.#logger.debug(`MergeStream ended: ${this.resources} resources, ${this.size} bytes`);
-              }
+              this.#logger.debug(`MergeStream ended: ${this.resources} resources, ${this.size} bytes`);
             } catch {
               // Controller might already be closed, ignore the error
-              if (this.#options.debug) {
-                this.#logger.debug("MergeStream already closed");
-              }
+              this.#logger.debug("MergeStream already closed");
             }
           }
         })
