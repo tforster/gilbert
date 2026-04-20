@@ -40,7 +40,8 @@ const gilbert = new Gilbert(
 );
 
 // compile() returns ReadableStream directly
-await gilbert.start().pipeTo(output.write("./dist"));
+const stream = await gilbert.start();
+await stream.pipeTo(output.write("./dist"));
 ```
 
 ## Technical Requirements
