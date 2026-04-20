@@ -52,7 +52,8 @@ Compiles all configured content through the appropriate pipelines.
 
 ```javascript
 // Compile and pipe to output
-await gilbert.start().pipeTo(outputAdapter.write("./dist"));
+const outputStream = await gilbert.start();
+await outputStream.pipeTo(outputAdapter.write("./dist"));
 ```
 
 **Parameters:** none
