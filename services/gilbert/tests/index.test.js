@@ -10,3 +10,4 @@ import "./scripts.test.js";
 import "./stylesheets.test.js";
 import "./middleware.test.js";
 import "./full.test.js";
+import "./debug.test.js";
