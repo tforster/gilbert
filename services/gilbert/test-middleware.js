@@ -61,7 +61,7 @@ async function testMiddleware() {
     );
 
     // Compile and output
-    const outputStream = await gilbert.compile();
+    const outputStream = await gilbert.start();
     await outputStream.pipeTo(outputAdapter.write(distDir));
 
     console.log("✅ Middleware test completed successfully!");

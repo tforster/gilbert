@@ -65,7 +65,7 @@ and merges it with in-memory Handlebars templates, generating each page on the f
   ensures stream independence on clone
 - **`webProducerKey`** — data convention that maps a URI record to its Handlebars template; supports
   path separators for component-based architectures (e.g. `"webProducerKey": "/admin/report/report"`)
-- **Programmatic API** — `gilbert.compile()` returns a `ReadableStream` directly; pipe it anywhere
+- **Programmatic API** — `gilbert.start()` returns a `ReadableStream` directly; pipe it anywhere
 - **Zero audit vulnerabilities** — all third-party dependencies audited; custom replacements used
   where vulnerabilities existed
 
@@ -108,7 +108,7 @@ const gilbert = new Gilbert({
   staticFiles: [new GilbertFS({ base: "./src/files" }).read("**/*"), new GilbertFS({ base: "./src/assets" }).read("**/*")],
 });
 
-await gilbert.compile();
+await gilbert.start();
 await gilbert.stream.pipeTo(new GilbertFS({ base: "./dist" }).write("./dist"));
 ```
 
@@ -118,7 +118,7 @@ For a full walkthrough, see the [Getting Started tutorial](./docs/tutorials/gett
 
 Full API documentation is in [`docs/reference/api.md`](./docs/reference/api.md).
 
-The core entry point is `gilbert.compile()`, which returns a `ReadableStream<GilbertFile>` directly.
+The core entry point is `gilbert.start()`, which returns a `ReadableStream<GilbertFile>` directly.
 Content sources are not limited to the filesystem — any `ReadableStream<GilbertFile>` is a valid
 input, including `gilbert-github` (GitHub API) and custom adapters (REST APIs, databases, headless
 CMS systems).

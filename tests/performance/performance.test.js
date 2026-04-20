@@ -188,7 +188,7 @@ async function runSingleTest(runNumber) {
     );
 
     // Compile and execute the build using new API (compile returns stream directly)
-    await (await gilbert.compile()).pipeTo(outputAdapter.write(testConfig.distDir));
+    await (await gilbert.start()).pipeTo(outputAdapter.write(testConfig.distDir));
 
     const endTime = performance.now();
     const duration = endTime - startTime;

@@ -40,7 +40,8 @@ const gilbert = new Gilbert(
 );
 
 // compile() returns ReadableStream directly
-await gilbert.compile().pipeTo(output.write("./dist"));
+const stream = await gilbert.start();
+await stream.pipeTo(output.write("./dist"));
 ```
 
 ## Technical Requirements
@@ -57,7 +58,7 @@ await gilbert.compile().pipeTo(output.write("./dist"));
 ### 2. Compile Method Returns Stream
 
 **Current:** `await gilbert.compile(params); await gilbert.stream.pipeTo(...)`
-**Target:** `await gilbert.compile().pipeTo(...)`
+**Target:** `await gilbert.start().pipeTo(...)`
 
 - `compile()` should return `this.stream` directly
 - Remove need for separate `gilbert.stream` access
@@ -217,7 +218,7 @@ compile(params) {
     console.warn('Gilbert: Legacy compile(params) deprecated. Use new constructor API');
     return this.#legacyCompile(params);
   } else {
-    // New: gilbert.compile()
+    // New: gilbert.start()
     return this.#newCompile();
   }
 }

@@ -36,7 +36,7 @@ await describe("Gilbert Stylesheets Pipeline", { concurrency: 1 }, () => {
     );
 
     // Compile and pipe Gilbert output to filesystem destination using adapter
-    await (await gilbert.compile()).pipeTo(fsAdapter.write(distDir));
+    await (await gilbert.start()).pipeTo(fsAdapter.write(distDir));
 
     assert.ok(existsSync(distDir), "Output directory should exist");
 
@@ -74,7 +74,7 @@ await describe("Gilbert Stylesheets Pipeline", { concurrency: 1 }, () => {
     );
 
     // Compile and pipe Gilbert output to filesystem destination using adapter
-    await (await gilbert.compile()).pipeTo(fsAdapter.write(distDir));
+    await (await gilbert.start()).pipeTo(fsAdapter.write(distDir));
 
     assert.ok(existsSync(distDir), "Output directory should exist");
 

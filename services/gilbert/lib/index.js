@@ -35,8 +35,9 @@ class Gilbert {
    * @memberof Gilbert
    */
   constructor(streams, config = {}) {
-    // .produce was renamed to .compile. This is a temporary alias to maintain backwards compatibility.
-    this.produce = this.compile;
+    // .produce was renamed to .compile, then .compile was renamed to .start. These are temporary aliases to maintain backwards compatibility.
+    this.produce = this.start;
+    this.compile = this.start;
 
     // Store streams and configuration separately
     this.#streams = streams || {};
@@ -210,14 +211,14 @@ class Gilbert {
   }
 
   /**
-   * @description: Compiles the contents from the various sources into a single stream.
+   * @description: Starts mounting the various pipelines and returns the to-be-merged ReadableStream immediately.
    * @returns {Promise<ReadableStream>} The Gilbert output stream
    * @memberof Gilbert
    */
-  async compile() {
+  async start() {
     const pipelinePromises = [];
 
-    // Reset stream coordinator for each compile
+    // Reset stream coordinator for each start
     this.#initializeMergeStream();
 
     // For compiling data and templates, both streams must be present.

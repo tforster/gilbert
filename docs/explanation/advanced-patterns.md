@@ -261,7 +261,10 @@ ${urls}
 // Usage
 const sitemapPlugin = new SitemapPlugin({ baseUrl: "https://mysite.com" });
 
-await gilbert.compile().pipeThrough(sitemapPlugin.createTransform()).pipeTo(outputAdapter.write("./dist"));
+const stream = await gilbert.start();
+await stream
+  .pipeThrough(sitemapPlugin.createTransform())
+  .pipeTo(outputAdapter.write("./dist"));
 ```
 
 ## Further Reading

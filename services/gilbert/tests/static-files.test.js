@@ -81,7 +81,7 @@ await describe("Gilbert Static Files Pipeline", { concurrency: 1 }, () => {
     );
 
     // Compile and pipe Gilbert output to filesystem destination
-    await (await gilbert.compile()).pipeTo(fsAdapter.write(distDir));
+    await (await gilbert.start()).pipeTo(fsAdapter.write(distDir));
 
     // Verify output files exist
     const outputFiles = await getAllFiles(distDir);
@@ -136,7 +136,7 @@ await describe("Gilbert Static Files Pipeline", { concurrency: 1 }, () => {
       }
     );
 
-    await (await gilbert.compile()).pipeTo(emptyFsAdapter.write(emptyOutputDir));
+    await (await gilbert.start()).pipeTo(emptyFsAdapter.write(emptyOutputDir));
 
     const outputFiles = await getAllFiles(emptyOutputDir);
     assert.equal(outputFiles.length, 0, "Should handle empty input gracefully");
@@ -159,7 +159,7 @@ await describe("Gilbert Static Files Pipeline", { concurrency: 1 }, () => {
       }
     );
 
-    await (await gilbert.compile()).pipeTo(fsAdapter.write(distDir));
+    await (await gilbert.start()).pipeTo(fsAdapter.write(distDir));
 
     // Get input and output file structures
     const inputFiles = await getAllFiles(filesDir);
@@ -192,7 +192,7 @@ await describe("Gilbert Static Files Pipeline", { concurrency: 1 }, () => {
       }
     );
 
-    await (await gilbert.compile()).pipeTo(fsAdapter.write(distDir));
+    await (await gilbert.start()).pipeTo(fsAdapter.write(distDir));
 
     // Compare input and output file contents
     const inputFiles = await getAllFiles(filesDir);
@@ -220,7 +220,7 @@ await describe("Gilbert Static Files Pipeline", { concurrency: 1 }, () => {
       }
     );
 
-    await (await gilbert1.compile()).pipeTo(fsAdapter.write(distDir));
+    await (await gilbert1.start()).pipeTo(fsAdapter.write(distDir));
 
     // Verify we got both file types
     const outputFiles = await getAllFiles(distDir);
@@ -258,7 +258,7 @@ await describe("Gilbert Static Files Pipeline", { concurrency: 1 }, () => {
       }
     );
 
-    await (await gilbert2.compile()).pipeTo(fsAdapter.write(distDir2));
+    await (await gilbert2.start()).pipeTo(fsAdapter.write(distDir2));
 
     const singlePatternFiles = await getAllFiles(distDir2);
 
@@ -275,7 +275,7 @@ await describe("Gilbert Static Files Pipeline", { concurrency: 1 }, () => {
       }
     );
 
-    await (await gilbert3.compile()).pipeTo(fsAdapter.write(distDir3));
+    await (await gilbert3.start()).pipeTo(fsAdapter.write(distDir3));
 
     const arrayPatternFiles = await getAllFiles(distDir3);
 
@@ -306,7 +306,7 @@ await describe("Gilbert Static Files Pipeline", { concurrency: 1 }, () => {
       }
     );
 
-    await (await gilbert.compile()).pipeTo(fsAdapter.write(distDir));
+    await (await gilbert.start()).pipeTo(fsAdapter.write(distDir));
 
     const outputFiles = await getAllFiles(distDir);
 

@@ -44,7 +44,7 @@ await describe("Gilbert Template Pipeline", { concurrency: 1 }, () => {
     );
 
     // Compile and pipe Gilbert output to filesystem destination
-    await (await gilbert.compile()).pipeTo(outputAdapter.write(distDir));
+    await (await gilbert.start()).pipeTo(outputAdapter.write(distDir));
 
     // Basic verification - check if any HTML files were generated
     const files = await readdir(distDir);
@@ -70,7 +70,7 @@ await describe("Gilbert Template Pipeline", { concurrency: 1 }, () => {
     );
 
     // Compile and pipe Gilbert output to filesystem destination
-    await (await gilbert.compile()).pipeTo(outputAdapter.write(distDir));
+    await (await gilbert.start()).pipeTo(outputAdapter.write(distDir));
 
     // Test specific file: homepage
     const homepageData = JSON.parse(await readFile(resolve(dataDir, "homepage.json"), "utf8"));
@@ -101,7 +101,7 @@ await describe("Gilbert Template Pipeline", { concurrency: 1 }, () => {
       }
     );
 
-    await (await gilbert.compile()).pipeTo(outputAdapter.write(distDir));
+    await (await gilbert.start()).pipeTo(outputAdapter.write(distDir));
 
     // Should produce the same output as single-stream — all templates and partials resolve
     const files = await readdir(distDir);
@@ -128,6 +128,6 @@ await describe("Gilbert Template Pipeline", { concurrency: 1 }, () => {
       { debug: false }
     );
 
-    await assert.rejects(() => gilbert.compile(), /Template collision/);
+    await assert.rejects(() => gilbert.start(), /Template collision/);
   });
 });

@@ -92,7 +92,7 @@ const gilbert = new Gilbert({
   data: { source: contentful.read() },
 });
 
-await gilbert.compile().pipeTo(outputAdapter.write("./dist"));
+await gilbert.start().pipeTo(outputAdapter.write("./dist"));
 ```
 
 **Custom Handlebars helpers** for Contentful rich text or date formatting:

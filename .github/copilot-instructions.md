@@ -14,7 +14,7 @@ Gilbert's core contract: **GilbertFile objects flow through Web API streams**.
   - `ScriptsPipeline` / `StylesheetsPipeline` — `constructor(entryPoints, options)`, `async getReadableStream()` returns a ReadableStream directly
   - `StaticFilesPipeline` — `constructor()`, exposes `this.transformStream` (TransformStream)
 - `TemplatePipeline` must load ALL templates into memory during `build()` before data processing begins — any data URI can reference any template in any order
-- Main Gilbert API entry point is `gilbert.compile()` which returns a `ReadableStream` directly
+- Main Gilbert API entry point is async: `await gilbert.start()` resolves to a `ReadableStream<GilbertFile>`
 
 ## 2. Engine vs Integration Boundary
 

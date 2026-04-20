@@ -85,7 +85,7 @@ describe("Gilbert GitHub Files Pipeline", { concurrency: 1 }, () => {
     };
 
     // Compile through Gilbert
-    await gilbert.compile(params);
+    await gilbert.start(params);
 
     // Stream to destination
     await gilbert.stream.pipeTo(githubAdapter.write(distDir));
@@ -124,7 +124,7 @@ describe("Gilbert GitHub Files Pipeline", { concurrency: 1 }, () => {
       staticFiles: githubAdapter.read(["/**/*.hbs", "/**/*.json"]),
     };
 
-    await gilbert1.compile(params);
+    await gilbert1.start(params);
     await gilbert1.stream.pipeTo(githubAdapter.write(distDir));
 
     // Verify we got both file types
@@ -166,7 +166,7 @@ describe("Gilbert GitHub Files Pipeline", { concurrency: 1 }, () => {
       staticFiles: templatesAdapter.read(["/**/*.hbs"]),
     };
 
-    await gilbert1.compile(templateParams);
+    await gilbert1.start(templateParams);
     await gilbert1.stream.pipeTo(templatesAdapter.write(dist1));
 
     const templateFiles = await getAllFiles(dist1);
@@ -178,7 +178,7 @@ describe("Gilbert GitHub Files Pipeline", { concurrency: 1 }, () => {
       staticFiles: contentAdapter.read(["/**/*.json"]),
     };
 
-    await gilbert2.compile(contentParams);
+    await gilbert2.start(contentParams);
     await gilbert2.stream.pipeTo(contentAdapter.write(dist2));
 
     const contentFiles = await getAllFiles(dist2);
@@ -208,7 +208,7 @@ describe("Gilbert GitHub Files Pipeline", { concurrency: 1 }, () => {
       staticFiles: mainAdapter.read(["package.json"]),
     };
 
-    await gilbert.compile(params);
+    await gilbert.start(params);
     await gilbert.stream.pipeTo(mainAdapter.write(distDir));
 
     const outputFiles = await getAllFiles(distDir);
@@ -232,7 +232,7 @@ describe("Gilbert GitHub Files Pipeline", { concurrency: 1 }, () => {
       staticFiles: githubAdapter.read("**/*.json"),
     };
 
-    await gilbert2.compile(singlePatternParams);
+    await gilbert2.start(singlePatternParams);
     await gilbert2.stream.pipeTo(githubAdapter.write(dist2));
     const singlePatternFiles = await getAllFiles(dist2);
 
@@ -243,7 +243,7 @@ describe("Gilbert GitHub Files Pipeline", { concurrency: 1 }, () => {
       staticFiles: githubAdapter.read(["**/*.json"]),
     };
 
-    await gilbert3.compile(arrayPatternParams);
+    await gilbert3.start(arrayPatternParams);
     await gilbert3.stream.pipeTo(githubAdapter.write(dist3));
     const arrayPatternFiles = await getAllFiles(dist3);
 
@@ -275,7 +275,7 @@ describe("Gilbert GitHub Files Pipeline", { concurrency: 1 }, () => {
       staticFiles: githubAdapter.read(["**/*.this-extension-should-not-exist"]),
     };
 
-    await gilbert.compile(params);
+    await gilbert.start(params);
     await gilbert.stream.pipeTo(githubAdapter.write(distDir));
 
     const outputFiles = await getAllFiles(distDir);
@@ -302,7 +302,7 @@ describe("Gilbert GitHub Files Pipeline", { concurrency: 1 }, () => {
       staticFiles: githubAdapter.read(["/**/*.hbs"]),
     };
 
-    await gilbert.compile(params);
+    await gilbert.start(params);
     await gilbert.stream.pipeTo(githubAdapter.write(distDir));
 
     const outputFiles = await getAllFiles(distDir);

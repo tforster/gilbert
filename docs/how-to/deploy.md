@@ -68,7 +68,8 @@ const gilbert = new Gilbert(
   { debug: !isProd }
 );
 
-await gilbert.compile().pipeTo(outputAdapter.write("./dist"));
+const outputStream = await gilbert.start();
+await outputStream.pipeTo(outputAdapter.write("./dist"));
 ```
 
 ### 2.2 Vercel
@@ -241,7 +242,7 @@ export const handler = async (event) => {
       data: { source: contentAdapter.read("data/**/*.json") },
     });
 
-    await gilbert.compile().pipeTo(outputAdapter.write("/tmp/dist"));
+    await gilbert.start().pipeTo(outputAdapter.write("/tmp/dist"));
 
     return { statusCode: 200, body: JSON.stringify({ message: "Site generated successfully" }) };
   } catch (error) {
@@ -300,7 +301,7 @@ app.post("/generate", async (req, res) => {
       data: { source: contentAdapter.read("data/**/*.json") },
     });
 
-    await gilbert.compile().pipeTo(outputAdapter.write("/tmp/dist"));
+    await gilbert.start().pipeTo(outputAdapter.write("/tmp/dist"));
     res.json({ message: "Generated successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
