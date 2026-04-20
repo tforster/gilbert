@@ -56,8 +56,8 @@ await describe("Gilbert Debug Output", { concurrency: 1 }, () => {
       // Compile and pipe Gilbert output to filesystem destination
       await (await gilbert.compile()).pipeTo(outputAdapter.write(distDir));
 
-      // Wait for async logging to complete
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Wait a single timer tick for async logging to complete
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       // Should have debug output
       assert.ok(consoleOutput.length > 0, "Should have console output when debug=true");
